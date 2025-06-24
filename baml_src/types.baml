@@ -1,4 +1,19 @@
 // State management types for the research workflow
+class SearchQueryList {
+    query string[] @description("A list of search queries to be used for web research.")
+    rationale string @description("A brief explanation of why these queries are relevant to the research topic.")
+}
+class SufficientReflection {
+    isSufficient true @description("Whether the provided summaries are sufficient to answer the user's question")
+}
+
+class InsufficientReflection {
+    isSufficient false @description("Whether the provided summaries are sufficient to answer the user's question")
+    knowledgeGap bool @description("A description of what information is missing or needs clarification")
+    followUpQueries string[] @description("A list of follow-up questions to be researched to address the knowledge gap")
+}
+
+type Reflection = SufficientReflection | InsufficientReflection
 
 class Message {
     role string @description("The role of the message sender (e.g., 'user', 'assistant', 'system')")
