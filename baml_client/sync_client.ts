@@ -19,7 +19,7 @@ import type { BamlRuntime, FunctionResult, BamlCtxManager, Image, Audio, ClientR
 import { toBamlError, type HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type * as types from "./types"
-import type {InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
+import type {GenerateQueryArgs, InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 import { HttpRequest, HttpStreamRequest } from "./sync_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -112,7 +112,7 @@ export class BamlSyncClient {
   }
   
   GenerateQuery(
-      research_topic: string,number_queries: number,current_date: string,
+      args: GenerateQueryArgs,
       __baml_options__?: BamlCallOptions
   ): SearchQueryList {
     try {
@@ -122,7 +122,7 @@ export class BamlSyncClient {
       const raw = this.runtime.callFunctionSync(
         "GenerateQuery",
         {
-          "research_topic": research_topic,"number_queries": number_queries,"current_date": current_date
+          "args": args
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),

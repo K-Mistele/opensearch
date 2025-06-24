@@ -22,6 +22,8 @@ import { DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME } from "./
 export default class TypeBuilder {
     private tb: _TypeBuilder;
     
+    GenerateQueryArgs: ClassViewer<'GenerateQueryArgs', "research_topic" | "current_date" | "number_queries">;
+    
     InsufficientReflection: ClassViewer<'InsufficientReflection', "isSufficient" | "knowledgeGap" | "followUpQueries">;
     
     Message: ClassViewer<'Message', "role" | "content">;
@@ -49,13 +51,17 @@ export default class TypeBuilder {
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "InsufficientReflection","Message","OverallState","Query","QueryGenerationState","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","SufficientReflection","WebSearchState",
+            "GenerateQueryArgs","InsufficientReflection","Message","OverallState","Query","QueryGenerationState","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","SufficientReflection","WebSearchState",
           ]),
           enums: new Set([
             
           ]),
           runtime: DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME
         });
+        
+        this.GenerateQueryArgs = this.tb.classViewer("GenerateQueryArgs", [
+          "research_topic","current_date","number_queries",
+        ]);
         
         this.InsufficientReflection = this.tb.classViewer("InsufficientReflection", [
           "isSufficient","knowledgeGap","followUpQueries",

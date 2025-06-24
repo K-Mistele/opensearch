@@ -20,7 +20,7 @@ import { toBamlError, BamlStream, type HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
+import type {GenerateQueryArgs, InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 import { AsyncHttpRequest, AsyncHttpStreamRequest } from "./async_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -110,7 +110,7 @@ export class BamlAsyncClient {
   }
   
   async GenerateQuery(
-      research_topic: string,number_queries: number,current_date: string,
+      args: GenerateQueryArgs,
       __baml_options__?: BamlCallOptions
   ): Promise<SearchQueryList> {
     try {
@@ -120,7 +120,7 @@ export class BamlAsyncClient {
       const raw = await this.runtime.callFunction(
         "GenerateQuery",
         {
-          "research_topic": research_topic,"number_queries": number_queries,"current_date": current_date
+          "args": args
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),
@@ -230,7 +230,7 @@ class BamlStreamClient {
   }
   
   GenerateQuery(
-      research_topic: string,number_queries: number,current_date: string,
+      args: GenerateQueryArgs,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
   ): BamlStream<partial_types.SearchQueryList, SearchQueryList> {
     try {
@@ -240,7 +240,7 @@ class BamlStreamClient {
       const raw = this.runtime.streamFunction(
         "GenerateQuery",
         {
-          "research_topic": research_topic,"number_queries": number_queries,"current_date": current_date
+          "args": args
         },
         undefined,
         this.ctxManager.cloneContext(),

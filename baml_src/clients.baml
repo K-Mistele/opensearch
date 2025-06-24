@@ -1,4 +1,19 @@
 // Learn more about clients at https://docs.boundaryml.com/docs/snippets/clients/overview
+client<llm> GeminiFlash25 {
+  provider google-ai
+  options {
+    model "gemini-2.5-flash"
+    api_key env.GOOGLE_API_KEY
+  }
+}
+
+client<llm> GeminiPro25 {
+  provider google-ai
+  options {
+    model "gemini-2.5-pro"
+    api_key env.GOOGLE_API_KEY
+  }
+}
 
 client<llm> CustomGPT4o {
   provider openai

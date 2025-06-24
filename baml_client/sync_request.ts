@@ -19,7 +19,7 @@ import type { BamlRuntime, BamlCtxManager, ClientRegistry, Image, Audio } from "
 import { toBamlError, HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type * as types from "./types"
-import type {InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
+import type {GenerateQueryArgs, InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 
 type BamlCallOptions = {
@@ -55,7 +55,7 @@ export class HttpRequest {
   }
   
   GenerateQuery(
-      research_topic: string,number_queries: number,current_date: string,
+      args: GenerateQueryArgs,
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -63,7 +63,7 @@ export class HttpRequest {
       return this.runtime.buildRequestSync(
         "GenerateQuery",
         {
-          "research_topic": research_topic,"number_queries": number_queries,"current_date": current_date
+          "args": args
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -149,7 +149,7 @@ export class HttpStreamRequest {
   }
   
   GenerateQuery(
-      research_topic: string,number_queries: number,current_date: string,
+      args: GenerateQueryArgs,
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -157,7 +157,7 @@ export class HttpStreamRequest {
       return this.runtime.buildRequestSync(
         "GenerateQuery",
         {
-          "research_topic": research_topic,"number_queries": number_queries,"current_date": current_date
+          "args": args
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

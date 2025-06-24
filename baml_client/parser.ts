@@ -20,7 +20,7 @@ import { toBamlError } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
+import type {GenerateQueryArgs, InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 
 export class LlmResponseParser {
