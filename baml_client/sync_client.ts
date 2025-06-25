@@ -19,7 +19,7 @@ import type { BamlRuntime, FunctionResult, BamlCtxManager, Image, Audio, ClientR
 import { toBamlError, type HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type * as types from "./types"
-import type {GenerateQueryArgs, InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
+import type {GenerateQueryArgs, Message, OverallState, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 import { HttpRequest, HttpStreamRequest } from "./sync_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -137,9 +137,9 @@ export class BamlSyncClient {
   }
   
   Reflect(
-      summaries: string,research_topic: string,
+      summaries: SearchResult[],research_topic: string,
       __baml_options__?: BamlCallOptions
-  ): SufficientReflection | InsufficientReflection {
+  ): Reflection {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -155,32 +155,7 @@ export class BamlSyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as SufficientReflection | InsufficientReflection
-    } catch (error: any) {
-      throw toBamlError(error);
-    }
-  }
-  
-  WebSearch(
-      current_date: string,research_topic: string,
-      __baml_options__?: BamlCallOptions
-  ): string {
-    try {
-      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
-      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
-      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
-      const raw = this.runtime.callFunctionSync(
-        "WebSearch",
-        {
-          "current_date": current_date,"research_topic": research_topic
-        },
-        this.ctxManager.cloneContext(),
-        options.tb?.__tb(),
-        options.clientRegistry,
-        collector,
-        env,
-      )
-      return raw.parsed(false) as string
+      return raw.parsed(false) as Reflection
     } catch (error: any) {
       throw toBamlError(error);
     }

@@ -24,8 +24,6 @@ export default class TypeBuilder {
     
     GenerateQueryArgs: ClassViewer<'GenerateQueryArgs', "research_topic" | "current_date" | "number_queries">;
     
-    InsufficientReflection: ClassViewer<'InsufficientReflection', "isSufficient" | "knowledgeGap" | "followUpQueries">;
-    
     Message: ClassViewer<'Message', "role" | "content">;
     
     OverallState: ClassViewer<'OverallState', "messages" | "search_query" | "web_research_result" | "sources_gathered" | "initial_search_query_count" | "max_research_loops" | "research_loop_count" | "reasoning_model">;
@@ -33,6 +31,8 @@ export default class TypeBuilder {
     Query: ClassViewer<'Query', "query" | "rationale">;
     
     QueryGenerationState: ClassViewer<'QueryGenerationState', "search_query">;
+    
+    Reflection: ClassViewer<'Reflection', "isSufficient" | "knowledgeGap" | "followUpQueries" | "followupQueriesRationale">;
     
     ReflectionState: ClassViewer<'ReflectionState', "is_sufficient" | "knowledge_gap" | "follow_up_queries" | "research_loop_count" | "number_of_ran_queries">;
     
@@ -42,8 +42,6 @@ export default class TypeBuilder {
     
     SearchStateOutput: ClassViewer<'SearchStateOutput', "running_summary">;
     
-    SufficientReflection: ClassViewer<'SufficientReflection', "isSufficient">;
-    
     WebSearchState: ClassViewer<'WebSearchState', "search_query" | "id">;
     
     
@@ -51,7 +49,7 @@ export default class TypeBuilder {
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "GenerateQueryArgs","InsufficientReflection","Message","OverallState","Query","QueryGenerationState","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","SufficientReflection","WebSearchState",
+            "GenerateQueryArgs","Message","OverallState","Query","QueryGenerationState","Reflection","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","WebSearchState",
           ]),
           enums: new Set([
             
@@ -61,10 +59,6 @@ export default class TypeBuilder {
         
         this.GenerateQueryArgs = this.tb.classViewer("GenerateQueryArgs", [
           "research_topic","current_date","number_queries",
-        ]);
-        
-        this.InsufficientReflection = this.tb.classViewer("InsufficientReflection", [
-          "isSufficient","knowledgeGap","followUpQueries",
         ]);
         
         this.Message = this.tb.classViewer("Message", [
@@ -83,6 +77,10 @@ export default class TypeBuilder {
           "search_query",
         ]);
         
+        this.Reflection = this.tb.classViewer("Reflection", [
+          "isSufficient","knowledgeGap","followUpQueries","followupQueriesRationale",
+        ]);
+        
         this.ReflectionState = this.tb.classViewer("ReflectionState", [
           "is_sufficient","knowledge_gap","follow_up_queries","research_loop_count","number_of_ran_queries",
         ]);
@@ -97,10 +95,6 @@ export default class TypeBuilder {
         
         this.SearchStateOutput = this.tb.classViewer("SearchStateOutput", [
           "running_summary",
-        ]);
-        
-        this.SufficientReflection = this.tb.classViewer("SufficientReflection", [
-          "isSufficient",
         ]);
         
         this.WebSearchState = this.tb.classViewer("WebSearchState", [

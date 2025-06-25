@@ -20,7 +20,7 @@ import { toBamlError, BamlStream, type HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {GenerateQueryArgs, InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
+import type {GenerateQueryArgs, Message, OverallState, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 import { AsyncHttpRequest, AsyncHttpStreamRequest } from "./async_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -135,9 +135,9 @@ export class BamlAsyncClient {
   }
   
   async Reflect(
-      summaries: string,research_topic: string,
+      summaries: SearchResult[],research_topic: string,
       __baml_options__?: BamlCallOptions
-  ): Promise<SufficientReflection | InsufficientReflection> {
+  ): Promise<Reflection> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -153,32 +153,7 @@ export class BamlAsyncClient {
         collector,
         env,
       )
-      return raw.parsed(false) as SufficientReflection | InsufficientReflection
-    } catch (error) {
-      throw toBamlError(error);
-    }
-  }
-  
-  async WebSearch(
-      current_date: string,research_topic: string,
-      __baml_options__?: BamlCallOptions
-  ): Promise<string> {
-    try {
-      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
-      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
-      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
-      const raw = await this.runtime.callFunction(
-        "WebSearch",
-        {
-          "current_date": current_date,"research_topic": research_topic
-        },
-        this.ctxManager.cloneContext(),
-        options.tb?.__tb(),
-        options.clientRegistry,
-        collector,
-        env,
-      )
-      return raw.parsed(false) as string
+      return raw.parsed(false) as Reflection
     } catch (error) {
       throw toBamlError(error);
     }
@@ -261,9 +236,9 @@ class BamlStreamClient {
   }
   
   Reflect(
-      summaries: string,research_topic: string,
+      summaries: SearchResult[],research_topic: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
-  ): BamlStream<((partial_types.SufficientReflection | null) | (partial_types.InsufficientReflection | null)), SufficientReflection | InsufficientReflection> {
+  ): BamlStream<partial_types.Reflection, Reflection> {
     try {
       const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
       const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
@@ -280,41 +255,10 @@ class BamlStreamClient {
         collector,
         env,
       )
-      return new BamlStream<((partial_types.SufficientReflection | null) | (partial_types.InsufficientReflection | null)), SufficientReflection | InsufficientReflection>(
+      return new BamlStream<partial_types.Reflection, Reflection>(
         raw,
-        (a): ((partial_types.SufficientReflection | null) | (partial_types.InsufficientReflection | null)) => a,
-        (a): SufficientReflection | InsufficientReflection => a,
-        this.ctxManager.cloneContext(),
-      )
-    } catch (error) {
-      throw toBamlError(error);
-    }
-  }
-  
-  WebSearch(
-      current_date: string,research_topic: string,
-      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
-  ): BamlStream<string, string> {
-    try {
-      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
-      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
-      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
-      const raw = this.runtime.streamFunction(
-        "WebSearch",
-        {
-          "current_date": current_date,"research_topic": research_topic
-        },
-        undefined,
-        this.ctxManager.cloneContext(),
-        options.tb?.__tb(),
-        options.clientRegistry,
-        collector,
-        env,
-      )
-      return new BamlStream<string, string>(
-        raw,
-        (a): string => a,
-        (a): string => a,
+        (a): partial_types.Reflection => a,
+        (a): Reflection => a,
         this.ctxManager.cloneContext(),
       )
     } catch (error) {

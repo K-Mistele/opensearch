@@ -1,4 +1,3 @@
-import { b } from "../baml_client";
 /**
  * Flow:
  * 1. generate a list of queries
@@ -11,9 +10,6 @@ import { b } from "../baml_client";
  * Web research flow:
  * execute a web search  with sources gathered, web research results. generate a search, let it iteratively search
  */
+import { connection } from "@/inngest/connection";
 
-await b.GenerateQuery({
-	research_topic: "Naptha AI funding round amount and series",
-	current_date: "06/24/2025",
-	number_queries: 10,
-});
+console.log(`Inngest connected: ${connection.state}`);

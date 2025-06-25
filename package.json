@@ -1,17 +1,20 @@
 {
-  "name": "opensearch",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "@boundaryml/baml": "^0.90.2",
-    "exa-js": "^1.8.17",
-    "inngest": "^3.39.2"
-  }
+	"name": "opensearch",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev": "bun run --watch src/index.ts"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@boundaryml/baml": "^0.90.2",
+		"exa-js": "^1.8.17",
+		"inngest": "^3.39.2"
+	}
 }

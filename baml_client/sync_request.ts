@@ -19,7 +19,7 @@ import type { BamlRuntime, BamlCtxManager, ClientRegistry, Image, Audio } from "
 import { toBamlError, HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type * as types from "./types"
-import type {GenerateQueryArgs, InsufficientReflection, Message, OverallState, Query, QueryGenerationState, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, SufficientReflection, WebSearchState} from "./types"
+import type {GenerateQueryArgs, Message, OverallState, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 
 type BamlCallOptions = {
@@ -77,7 +77,7 @@ export class HttpRequest {
   }
   
   Reflect(
-      summaries: string,research_topic: string,
+      summaries: SearchResult[],research_topic: string,
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -86,28 +86,6 @@ export class HttpRequest {
         "Reflect",
         {
           "summaries": summaries,"research_topic": research_topic
-        },
-        this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
-        false,
-        env,
-      )
-    } catch (error) {
-      throw toBamlError(error);
-    }
-  }
-  
-  WebSearch(
-      current_date: string,research_topic: string,
-      __baml_options__?: BamlCallOptions
-  ): HTTPRequest {
-    try {
-      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
-      return this.runtime.buildRequestSync(
-        "WebSearch",
-        {
-          "current_date": current_date,"research_topic": research_topic
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -171,7 +149,7 @@ export class HttpStreamRequest {
   }
   
   Reflect(
-      summaries: string,research_topic: string,
+      summaries: SearchResult[],research_topic: string,
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -180,28 +158,6 @@ export class HttpStreamRequest {
         "Reflect",
         {
           "summaries": summaries,"research_topic": research_topic
-        },
-        this.ctxManager.cloneContext(),
-        __baml_options__?.tb?.__tb(),
-        __baml_options__?.clientRegistry,
-        true,
-        env,
-      )
-    } catch (error) {
-      throw toBamlError(error);
-    }
-  }
-  
-  WebSearch(
-      current_date: string,research_topic: string,
-      __baml_options__?: BamlCallOptions
-  ): HTTPRequest {
-    try {
-      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
-      return this.runtime.buildRequestSync(
-        "WebSearch",
-        {
-          "current_date": current_date,"research_topic": research_topic
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

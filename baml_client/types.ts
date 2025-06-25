@@ -53,13 +53,6 @@ export interface GenerateQueryArgs {
   
 }
 
-export interface InsufficientReflection {
-  isSufficient: false
-  knowledgeGap: boolean
-  followUpQueries: string[]
-  
-}
-
 export interface Message {
   role: string
   content: string
@@ -89,6 +82,14 @@ export interface QueryGenerationState {
   
 }
 
+export interface Reflection {
+  isSufficient: boolean
+  knowledgeGap?: string | null
+  followUpQueries?: string[] | null
+  followupQueriesRationale?: string[] | null
+  
+}
+
 export interface ReflectionState {
   is_sufficient: boolean
   knowledge_gap: string
@@ -107,7 +108,7 @@ export interface SearchQueryList {
 export interface SearchResult {
   url: string
   id: string
-  title: string
+  title?: string | null | null | null
   highlights: string[]
   highlightScores: number[]
   text: string
@@ -116,11 +117,6 @@ export interface SearchResult {
 
 export interface SearchStateOutput {
   running_summary?: string | null
-  
-}
-
-export interface SufficientReflection {
-  isSufficient: true
   
 }
 
