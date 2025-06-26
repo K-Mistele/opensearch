@@ -1,89 +1,65 @@
-import type { Reflection, SearchQueryList } from "@baml-client";
-import { b } from "@baml-client";
-import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
-import type React from "react";
-import { useEffect, useState } from "react";
+import type { Reflection, SearchQueryList } from '@baml-client';
+import { Box, Text } from 'ink';
+import Spinner from 'ink-spinner';
+import type React from 'react';
 
-interface QueryGenerationProps {
+type QueryGenerationProps = {
 	researchTopic: string;
-	onComplete: (queryList: SearchQueryList) => void;
-	isFollowUp?: boolean;
-	previousReflection?: Reflection | null;
-}
+} & (
+	| {
+			isFollowUp: true;
+			previousReflection: Reflection;
+	  }
+	| {
+			isFollowUp: false;
+	  }
+) &
+	(
+		| {
+				isGenerating: true;
+		  }
+		| {
+				isGenerating: false;
+				queries: SearchQueryList;
+		  }
+		| {
+				isGenerating: false;
+				queries: null;
+		  }
+	);
 
-export const QueryGeneration: React.FC<QueryGenerationProps> = ({
-	researchTopic,
-	onComplete,
-	isFollowUp = false,
-	previousReflection,
-}) => {
-	const [isGenerating, setIsGenerating] = useState(true);
-	const [generatedQueries, setGeneratedQueries] =
-		useState<SearchQueryList | null>(null);
+export const QueryGeneration: React.FC<QueryGenerationProps> = (props) => {
+	const { researchTopic, isFollowUp = false, isGenerating } = props;
 
-	useEffect(() => {
-		const generateQueries = async () => {
-			setIsGenerating(true);
-
-			try {
-				// Call actual BAML GenerateQuery function
-				const args = {
-					research_topic: researchTopic,
-					current_date: new Date().toISOString().substring(0, 10), // Format as YYYY-MM-DD
-					...(isFollowUp && { number_queries: 2 }),
-				};
-
-				const result = await b.GenerateQuery(args);
-
-				setGeneratedQueries(result);
-				setIsGenerating(false);
-				onComplete(result);
-			} catch (error) {
-				console.error("Error generating queries:", error);
-
-				// Fallback to mock data on error
-				const mockQueries: SearchQueryList = {
-					query:
-						isFollowUp && previousReflection?.followUpQueries
-							? previousReflection.followUpQueries
-							: [
-									`${researchTopic} latest news 2024`,
-									`${researchTopic} recent developments`,
-								],
-					rationale: isFollowUp
-						? `Following up on knowledge gaps: ${previousReflection?.knowledgeGap}`
-						: `Initial research queries for understanding ${researchTopic}`,
-				};
-
-				setGeneratedQueries(mockQueries);
-				setIsGenerating(false);
-				onComplete(mockQueries);
-			}
-		};
-
-		generateQueries();
-	}, [researchTopic, onComplete, isFollowUp, previousReflection]);
+	const genWord = props.isGenerating ? 'Generating' : 'Generated';
 
 	return (
-		<Box flexDirection="column">
+		<Box
+			flexDirection="column"
+			borderColor="blue"
+			borderStyle="round"
+			paddingX={2}
+			paddingY={1}
+		>
 			<Box marginBottom={1}>
 				<Text bold color="yellow">
 					{isFollowUp
-						? "🔄 Generating Follow-up Queries"
-						: "🤖 Generating Search Queries"}
+						? `🔄 ${genWord} Follow-Up Queries`
+						: `🤖 ${genWord} Search Queries`}
 				</Text>
 			</Box>
 
-			{isFollowUp && previousReflection?.knowledgeGap && (
-				<Box marginBottom={1} paddingLeft={2}>
-					<Text color="gray">
-						Knowledge Gap: {previousReflection.knowledgeGap}
-					</Text>
-				</Box>
-			)}
+			{isFollowUp &&
+				'previousReflection' in props &&
+				props.previousReflection?.knowledgeGap && (
+					<Box marginBottom={1}>
+						<Text color="gray">
+							Knowledge Gap: {props.previousReflection.knowledgeGap}
+						</Text>
+					</Box>
+				)}
 
-			<Box marginBottom={1} paddingLeft={2}>
+			<Box marginBottom={1}>
 				<Text color="gray">Research Topic: {researchTopic}</Text>
 			</Box>
 
@@ -91,30 +67,34 @@ export const QueryGeneration: React.FC<QueryGenerationProps> = ({
 				<Box>
 					<Spinner type="dots" />
 					<Text>
-						{" "}
+						{' '}
 						Analyzing topic and generating optimized search queries...
 					</Text>
 				</Box>
 			) : (
-				generatedQueries && (
+				'queries' in props &&
+				props.queries && (
 					<Box flexDirection="column" marginTop={1}>
 						<Box marginBottom={1}>
 							<Text bold color="green">
-								✅ Queries Generated
+								✅ Queries Ready
 							</Text>
 						</Box>
 
-						<Box marginBottom={1} paddingLeft={2}>
-							<Text color="blue">Rationale: {generatedQueries.rationale}</Text>
+						<Box marginBottom={1} flexDirection="column">
+							<Text bold>Search Queries:</Text>
+							{props.queries.query.map((query: string) => (
+								<Text key={query} color="cyan">
+									• {query}
+								</Text>
+							))}
 						</Box>
 
-						<Box flexDirection="column" paddingLeft={2}>
-							<Text bold>Search Queries:</Text>
-							{generatedQueries.query.map((query) => (
-								<Box key={query} marginTop={1}>
-									<Text color="cyan">• {query}</Text>
-								</Box>
-							))}
+						<Box flexDirection="column">
+							<Text bold color="white">
+								Rationale:
+							</Text>
+							<Text color="gray">{props.queries.rationale}</Text>
 						</Box>
 					</Box>
 				)

@@ -1,9 +1,9 @@
-import type { SearchResult } from "@baml-client";
-import { b } from "@baml-client";
-import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
-import type React from "react";
-import { useEffect, useState } from "react";
+import type { SearchResult } from '@baml-client';
+import { b } from '@baml-client';
+import { Box, Text } from 'ink';
+import Spinner from 'ink-spinner';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 
 interface FinalAnswerProps {
 	researchTopic: string;
@@ -17,34 +17,27 @@ export const FinalAnswer: React.FC<FinalAnswerProps> = ({
 	onComplete,
 }) => {
 	const [isGenerating, setIsGenerating] = useState(true);
-	const [answer, setAnswer] = useState<string>("");
+	const [answer, setAnswer] = useState<string>('');
 
 	useEffect(() => {
 		const generateAnswer = async () => {
 			setIsGenerating(true);
 
 			try {
-				// Convert search results to summaries format expected by CreateAnswer
-				const summaries = searchResults.map((result) => {
-					return `Title: ${result.title || "Untitled"}
-URL: ${result.url}
-Highlights: ${result.highlights.join("; ")}
-Content: ${result.text}`;
-				});
-
 				// Call actual BAML CreateAnswer function
 				const currentDate = new Date().toISOString().substring(0, 10);
+
 				const result = await b.CreateAnswer(
 					currentDate, // current_date
 					researchTopic, // research_topic
-					summaries, // summaries
+					searchResults, // summaries as SearchResult[]
 				);
 
 				setAnswer(result);
 				setIsGenerating(false);
 				onComplete(result);
 			} catch (error) {
-				console.error("Error generating answer:", error);
+				console.error('Error generating answer:', error);
 
 				// Fallback answer
 				const mockAnswer = `Based on the research conducted on "${researchTopic}", here's a comprehensive summary:
@@ -56,15 +49,15 @@ ${searchResults
 	.slice(0, 3)
 	.map(
 		(result, index) =>
-			`${index + 1}. ${result.highlights[0] || "Key information found"}`,
+			`${index + 1}. ${result.highlights[0] || 'Key information found'}`,
 	)
-	.join("\n")}
+	.join('\n')}
 
 Sources:
 ${searchResults
 	.slice(0, 3)
-	.map((result) => `- [${result.title || "Source"}](${result.url})`)
-	.join("\n")}
+	.map((result) => `- [${result.title || 'Source'}](${result.url})`)
+	.join('\n')}
 
 This analysis provides a foundation for understanding ${researchTopic} based on current available information.`;
 
@@ -85,7 +78,7 @@ This analysis provides a foundation for understanding ${researchTopic} based on 
 				</Text>
 			</Box>
 
-			<Box marginBottom={1} paddingLeft={2}>
+			<Box marginBottom={1}>
 				<Text color="gray">
 					Synthesizing information from {searchResults.length} sources...
 				</Text>
@@ -95,7 +88,7 @@ This analysis provides a foundation for understanding ${researchTopic} based on 
 				<Box>
 					<Spinner type="dots" />
 					<Text>
-						{" "}
+						{' '}
 						Creating comprehensive answer based on research findings...
 					</Text>
 				</Box>
@@ -103,11 +96,11 @@ This analysis provides a foundation for understanding ${researchTopic} based on 
 				<Box flexDirection="column" marginTop={1}>
 					<Box marginBottom={1}>
 						<Text bold color="green">
-							✅ Answer Generated
+							✅ Answer Ready
 						</Text>
 					</Box>
 
-					<Box flexDirection="column" paddingLeft={2}>
+					<Box>
 						<Text>{answer}</Text>
 					</Box>
 				</Box>

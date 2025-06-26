@@ -1,294 +1,85 @@
-import type {
-	Query,
-	Reflection,
-	SearchQueryList,
-	SearchResult,
-} from '@baml-client';
-import { Box, Static, Text } from 'ink';
+import { Box, Text } from 'ink';
+import type { EventEmitter } from 'node:events';
 import type React from 'react';
-import { useState } from 'react';
-import { FinalAnswer } from './components/final-answer.tsx';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { eventEmitter, executeAgent } from './agent';
 import { QueryGeneration } from './components/query-generation.tsx';
-import { ReflectionStep } from './components/reflection.tsx';
 import { ResearchInput } from './components/research-input.tsx';
-import { SearchResults } from './components/search-results.tsx';
-
-type WorkflowStep =
-	| 'input'
-	| 'generating-queries'
-	| 'searching'
-	| 'reflecting'
-	| 'generating-answer'
-	| 'complete';
-
-interface CompletedStep {
-	type: 'topic' | 'queries' | 'search' | 'reflection' | 'answer';
-	content: string | SearchQueryList | SearchResult[] | Reflection;
-	timestamp: Date;
-}
-
-interface AppState {
-	researchTopic: string;
-	currentStep: WorkflowStep;
-	queries: Query[];
-	searchResults: SearchResult[];
-	reflection: Reflection | null;
-	finalAnswer: string;
-	isLoading: boolean;
-	iterationCount: number;
-	completedSteps: CompletedStep[];
-}
+import type { Step } from './types';
 
 const App: React.FC = () => {
-	const [state, setState] = useState<AppState>({
-		researchTopic: '',
-		currentStep: 'input',
-		queries: [],
-		searchResults: [],
-		reflection: null,
-		finalAnswer: '',
-		isLoading: false,
-		iterationCount: 0,
-		completedSteps: [],
-	});
+	const [steps, setSteps] = useState<Array<Step>>([]);
+	const emitter = useRef<EventEmitter>(eventEmitter);
+	const [researchTopic, setResearchTopic] = useState<string>('');
 
-	const addCompletedStep = (step: Omit<CompletedStep, 'timestamp'>) => {
-		setState((prev) => ({
-			...prev,
-			completedSteps: [
-				...prev.completedSteps,
-				{ ...step, timestamp: new Date() },
-			],
-		}));
-	};
+	useEffect(() => {
+		emitter.current.on('state-update', handleStateUpdate);
+		emitter.current.on('state-replace', handleStateReplace);
+		return () => {
+			emitter.current.off('state-update', handleStateUpdate);
+			emitter.current.off('state-replace', handleStateReplace);
+		};
+	}, []);
 
-	const handleResearchTopicSubmit = (topic: string) => {
-		addCompletedStep({ type: 'topic', content: topic });
+	const handleStateUpdate = useCallback((step: Step) => {
+		setSteps((prev) => [...prev, step]);
+	}, []);
 
-		setState((prev) => ({
-			...prev,
-			researchTopic: topic,
-			currentStep: 'generating-queries',
-			isLoading: true,
-		}));
-
-		// TODO: Integrate with your orchestration logic here
-		// This would call your BAML functions through the orchestration system
-	};
-
-	const handleQueriesGenerated = (queryList: SearchQueryList) => {
-		const queries: Query[] = queryList.query.map((q) => ({
-			query: q,
-			rationale: queryList.rationale,
-		}));
-
-		addCompletedStep({ type: 'queries', content: queryList });
-
-		setState((prev) => ({
-			...prev,
-			queries,
-			currentStep: 'searching',
-		}));
-	};
-
-	const handleSearchComplete = (results: SearchResult[]) => {
-		addCompletedStep({ type: 'search', content: results });
-
-		setState((prev) => ({
-			...prev,
-			searchResults: results,
-			currentStep: 'reflecting',
-		}));
-	};
-
-	const handleReflectionComplete = (reflection: Reflection) => {
-		addCompletedStep({ type: 'reflection', content: reflection });
-
-		setState((prev) => ({
-			...prev,
-			reflection,
-			currentStep: reflection.isSufficient
-				? 'generating-answer'
-				: 'generating-queries',
-			iterationCount: prev.iterationCount + 1,
-		}));
-
-		if (!reflection.isSufficient && reflection.followUpQueries) {
-			// Convert follow-up queries to Query format and continue the loop
-			const followUpQueries: Query[] = reflection.followUpQueries.map(
-				(query, index) => ({
-					query,
-					rationale:
-						reflection.followupQueriesRationale?.[index] || 'Follow-up query',
-				}),
-			);
-
-			setState((prev) => ({
-				...prev,
-				queries: followUpQueries,
-				currentStep: 'searching',
-			}));
-		}
-	};
-
-	const handleAnswerGenerated = (answer: string) => {
-		addCompletedStep({ type: 'answer', content: answer });
-
-		setState((prev) => ({
-			...prev,
-			finalAnswer: answer,
-			currentStep: 'complete',
-			isLoading: false,
-		}));
-	};
-
-	const renderCompletedStep = (step: CompletedStep, index: number) => {
-		switch (step.type) {
-			case 'topic': {
-				return (
-					<Box key={index} flexDirection="column" marginBottom={1}>
-						<Text bold color="blue">
-							🔍 Research Topic
-						</Text>
-						<Text>{step.content as string}</Text>
-						<Text> </Text>
-					</Box>
-				);
+	const handleStateReplace = useCallback((step: Step) => {
+		setSteps((prevSteps) => {
+			const newSteps = [...prevSteps];
+			for (let i = newSteps.length - 1; i >= 0; i--) {
+				if (newSteps[i]?.type === step.type) {
+					newSteps[i] = step;
+					break;
+				}
 			}
+			return newSteps;
+		});
+	}, []);
 
-			case 'queries': {
-				const queryList = step.content as SearchQueryList;
-				return (
-					<Box key={index} flexDirection="column" marginBottom={1}>
-						<Text bold color="green">
-							✅ Queries Generated
-						</Text>
-						<Text color="blue">Rationale: {queryList.rationale}</Text>
-						<Text> </Text>
-						{queryList.query.map((query) => (
-							<Text key={query} color="cyan">
-								• {query}
-							</Text>
-						))}
-						<Text> </Text>
-					</Box>
-				);
-			}
-
-			case 'search': {
-				const results = step.content as SearchResult[];
-				return (
-					<Box key={index} flexDirection="column" marginBottom={1}>
-						<Text bold color="green">
-							✅ Search Complete
-						</Text>
-						<Text>Found {results.length} search results</Text>
-						<Text> </Text>
-					</Box>
-				);
-			}
-
-			case 'reflection': {
-				const reflection = step.content as Reflection;
-				return (
-					<Box key={index} flexDirection="column" marginBottom={1}>
-						<Text bold color={reflection.isSufficient ? 'green' : 'yellow'}>
-							{reflection.isSufficient
-								? '✅ Information Sufficient'
-								: '⚠️  Knowledge Gaps Identified'}
-						</Text>
-						{!reflection.isSufficient && reflection.knowledgeGap && (
-							<>
-								<Text color="yellow">Gap: {reflection.knowledgeGap}</Text>
-								{reflection.followUpQueries && (
-									<>
-										<Text>Follow-up queries:</Text>
-										{reflection.followUpQueries.map((query) => (
-											<Text key={query} color="cyan">
-												• {query}
-											</Text>
-										))}
-									</>
-								)}
-							</>
-						)}
-						<Text> </Text>
-					</Box>
-				);
-			}
-
-			case 'answer': {
-				return (
-					<Box key={index} flexDirection="column" marginBottom={1}>
-						<Text bold color="green">
-							✅ Final Answer Generated
-						</Text>
-						<Text>{step.content as string}</Text>
-						<Text> </Text>
-					</Box>
-				);
-			}
-
-			default:
-				return null;
-		}
-	};
-
+	const handleResearchTopicSubmit = useCallback((topic: string) => {
+		setResearchTopic(topic);
+		executeAgent({ researchTopic: topic, maxRounds: 10 });
+	}, []);
 	return (
 		<>
-			<Static items={state.completedSteps}>
-				{(step, index) => renderCompletedStep(step, index)}
-			</Static>
-
-			<Box flexDirection="column">
-				{state.currentStep === 'input' && !state.completedSteps.length && (
-					<>
-						<Text bold color="blue">
-							🔍 Deep Research Agent
-						</Text>
-						<Text> </Text>
-						<ResearchInput onSubmit={handleResearchTopicSubmit} />
-					</>
-				)}
-
-				{state.currentStep === 'generating-queries' && (
-					<QueryGeneration
-						researchTopic={state.researchTopic}
-						onComplete={handleQueriesGenerated}
-						isFollowUp={state.iterationCount > 0}
-						previousReflection={state.reflection}
-					/>
-				)}
-
-				{state.currentStep === 'searching' && (
-					<SearchResults
-						queries={state.queries}
-						onComplete={handleSearchComplete}
-					/>
-				)}
-
-				{state.currentStep === 'reflecting' && (
-					<ReflectionStep
-						researchTopic={state.researchTopic}
-						searchResults={state.searchResults}
-						onComplete={handleReflectionComplete}
-					/>
-				)}
-
-				{state.currentStep === 'generating-answer' && (
-					<FinalAnswer
-						researchTopic={state.researchTopic}
-						searchResults={state.searchResults}
-						onComplete={handleAnswerGenerated}
-					/>
-				)}
-
-				{state.currentStep === 'complete' && (
-					<Text bold color="green">
-						🎉 Research Complete!
-					</Text>
-				)}
+			<Box
+				flexDirection="column"
+				borderColor="magenta"
+				borderStyle="round"
+				paddingY={1}
+				paddingX={2}
+			>
+				<ResearchInput onSubmit={handleResearchTopicSubmit} />
 			</Box>
+			{steps.map((step, index) => {
+				if (step.type === 'input' && index === steps.length - 1) {
+					return (
+						<QueryGeneration
+							researchTopic={step.data}
+							isGenerating={true}
+							isFollowUp={false}
+							key={`${step.type}-${index}`}
+						/>
+					);
+				}
+				if (step.type === 'queries-generated') {
+					return (
+						<QueryGeneration
+							researchTopic={researchTopic}
+							isGenerating={false}
+							isFollowUp={false}
+							queries={step.data}
+							key={`${step.type}-${index}`}
+						/>
+					);
+				}
+			})}
+			<Text>{steps.length}</Text>
+			{steps.map((step, index) => (
+				<Text key={`${step.type}-${index}`}>{step.type}</Text>
+			))}
 		</>
 	);
 };

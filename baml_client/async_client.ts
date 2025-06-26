@@ -135,7 +135,7 @@ export class BamlAsyncClient {
   }
   
   async Reflect(
-      summaries: SearchResult[],research_topic: string,
+      summaries: SearchResult[],research_topic: string,current_date: string,
       __baml_options__?: BamlCallOptions
   ): Promise<Reflection> {
     try {
@@ -145,7 +145,7 @@ export class BamlAsyncClient {
       const raw = await this.runtime.callFunction(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),
@@ -236,7 +236,7 @@ class BamlStreamClient {
   }
   
   Reflect(
-      summaries: SearchResult[],research_topic: string,
+      summaries: SearchResult[],research_topic: string,current_date: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
   ): BamlStream<partial_types.Reflection, Reflection> {
     try {
@@ -246,7 +246,7 @@ class BamlStreamClient {
       const raw = this.runtime.streamFunction(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date
         },
         undefined,
         this.ctxManager.cloneContext(),

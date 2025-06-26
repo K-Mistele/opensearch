@@ -213,3 +213,75 @@ export function nanoid(len = 10): string {
 
 	return result;
 }
+
+/**
+ * Processes markdown text to convert random ID footnotes to numbered footnotes
+ * and adds proper MDX footnote definitions at the bottom.
+ *
+ * @param text - The markdown text containing footnotes like [^randomId]
+ * @param searchResults - Array of search results to map footnote IDs to
+ * @returns The processed text with numbered footnotes and definitions
+ */
+export function processFootnotes(
+	text: string,
+	searchResults: Array<{
+		id?: string | null;
+		title?: string | null;
+		url?: string | null;
+	}>,
+): string {
+	// Find all footnote references in the format [^ID]
+	const footnoteRegex = /\[\^([^\]]+)\]/g;
+	const foundFootnotes = new Map<string, number>();
+	const footnoteDefinitions: string[] = [];
+	let footnoteCounter = 1;
+
+	// First pass: collect all unique footnote IDs and assign numbers
+	let match: RegExpExecArray | null;
+	footnoteRegex.lastIndex = 0; // Reset regex state
+
+	match = footnoteRegex.exec(text);
+	while (match !== null) {
+		const footnoteId = match[1];
+		if (footnoteId && !foundFootnotes.has(footnoteId)) {
+			foundFootnotes.set(footnoteId, footnoteCounter);
+
+			// Find the corresponding search result
+			const searchResult = searchResults.find(
+				(result) => result.id === footnoteId,
+			);
+			if (searchResult) {
+				// Create footnote definition
+				const title = searchResult.title ?? 'Untitled';
+				const url = searchResult.url ?? '#';
+				footnoteDefinitions.push(`[^${footnoteCounter}]: [${title}](${url})`);
+			} else {
+				// Fallback if search result not found
+				footnoteDefinitions.push(`[^${footnoteCounter}]: Reference not found`);
+			}
+
+			footnoteCounter++;
+		}
+		match = footnoteRegex.exec(text);
+	}
+
+	// Second pass: replace all footnote references with numbered ones
+	let processedText = text;
+	for (const [originalId, number] of foundFootnotes) {
+		const numberedFootnote = `[^${number}]`;
+		processedText = processedText.replace(
+			new RegExp(
+				`\\[\\^${originalId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`,
+				'g',
+			),
+			numberedFootnote,
+		);
+	}
+
+	// Add footnote definitions at the bottom if any were found
+	if (footnoteDefinitions.length > 0) {
+		processedText = `${processedText}\n\n---\n\n${footnoteDefinitions.join('\n')}`;
+	}
+
+	return processedText;
+}

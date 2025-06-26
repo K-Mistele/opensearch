@@ -5,7 +5,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "bun run --watch src/index.ts",
-		"cli": "bun run src/cli/index.tsx"
+		"cli": "BAML_LOG=OFF bun --bun run  src/cli/index.tsx"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"
@@ -24,6 +24,7 @@
 		"ink-text-input": "^6.0.0",
 		"inngest": "^3.39.2",
 		"lucide-react": "^0.523.0",
-		"react": "^19.1.0"
+		"react": "^19.1.0",
+		"xstate": "^5.20.0"
 	}
 }

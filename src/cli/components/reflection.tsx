@@ -1,9 +1,9 @@
-import type { Reflection, SearchResult } from "@baml-client";
-import { b } from "@baml-client";
-import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
-import type React from "react";
-import { useEffect, useState } from "react";
+import type { Reflection, SearchResult } from '@baml-client';
+import { b } from '@baml-client';
+import { Box, Text } from 'ink';
+import Spinner from 'ink-spinner';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 
 interface ReflectionStepProps {
 	researchTopic: string;
@@ -25,26 +25,30 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = ({
 
 			try {
 				// Call actual BAML Reflect function
-				const result = await b.Reflect(searchResults, researchTopic);
+				const result = await b.Reflect(
+					searchResults,
+					researchTopic,
+					new Date().toLocaleDateString(),
+				);
 
 				setReflection(result);
 				setIsReflecting(false);
 				onComplete(result);
 			} catch (error) {
-				console.error("Error during reflection:", error);
+				console.error('Error during reflection:', error);
 
 				// Fallback reflection
 				const mockReflection: Reflection = {
 					isSufficient: Math.random() > 0.5, // Randomly decide for demo
 					knowledgeGap:
-						"Need more specific information about recent developments",
+						'Need more specific information about recent developments',
 					followUpQueries: [
 						`${researchTopic} 2024 updates`,
 						`${researchTopic} latest developments`,
 					],
 					followupQueriesRationale: [
-						"To get the most current information",
-						"To understand recent changes and developments",
+						'To get the most current information',
+						'To understand recent changes and developments',
 					],
 				};
 
@@ -65,7 +69,7 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = ({
 				</Text>
 			</Box>
 
-			<Box marginBottom={1} paddingLeft={2}>
+			<Box marginBottom={1}>
 				<Text color="gray">
 					Found {searchResults.length} search results - analyzing for
 					completeness...
@@ -76,7 +80,7 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = ({
 				<Box>
 					<Spinner type="dots" />
 					<Text>
-						{" "}
+						{' '}
 						Evaluating information quality and identifying knowledge gaps...
 					</Text>
 				</Box>
@@ -84,39 +88,45 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = ({
 				reflection && (
 					<Box flexDirection="column" marginTop={1}>
 						<Box marginBottom={1}>
-							<Text bold color={reflection.isSufficient ? "green" : "yellow"}>
+							<Text bold color={reflection.isSufficient ? 'green' : 'yellow'}>
 								{reflection.isSufficient
-									? "✅ Information Sufficient"
-									: "⚠️  Knowledge Gaps Identified"}
+									? '✅ Analysis Complete - Sufficient'
+									: '⚠️ Analysis Complete - Gaps Found'}
+							</Text>
+						</Box>
+
+						<Box marginBottom={1}>
+							<Text bold>Analysis Results:</Text>
+							<Text>
+								• Information Sufficient:{' '}
+								<Text color={reflection.isSufficient ? 'green' : 'red'}>
+									{reflection.isSufficient ? 'Yes' : 'No'}
+								</Text>
 							</Text>
 						</Box>
 
 						{!reflection.isSufficient && reflection.knowledgeGap && (
-							<Box marginBottom={1} paddingLeft={2}>
-								<Text color="yellow">Gap: {reflection.knowledgeGap}</Text>
+							<Box marginBottom={1}>
+								<Text bold color="yellow">
+									Knowledge Gap Identified:
+								</Text>
+								<Text color="yellow">{reflection.knowledgeGap}</Text>
 							</Box>
 						)}
 
 						{!reflection.isSufficient && reflection.followUpQueries && (
-							<Box flexDirection="column" paddingLeft={2}>
-								<Text bold>Follow-up Queries Needed:</Text>
+							<Box>
+								<Text bold>Follow-up Queries to Generate:</Text>
 								{reflection.followUpQueries.map((query, index) => (
-									<Box key={query} marginTop={1}>
-										<Text color="cyan">• {query}</Text>
-										{reflection.followupQueriesRationale?.[index] && (
-											<Box paddingLeft={4} marginTop={1}>
-												<Text color="gray" dimColor>
-													{reflection.followupQueriesRationale[index]}
-												</Text>
-											</Box>
-										)}
-									</Box>
+									<Text key={query} color="cyan">
+										• {query}
+									</Text>
 								))}
 							</Box>
 						)}
 
 						{reflection.isSufficient && (
-							<Box paddingLeft={2}>
+							<Box>
 								<Text color="green">
 									Ready to generate comprehensive answer based on gathered
 									information.

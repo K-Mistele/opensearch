@@ -7,7 +7,7 @@ import type {
 import { b } from '@baml-client';
 import { channel, topic } from '@inngest/realtime';
 import { NonRetriableError } from 'inngest';
-import { nanoid } from '../../utils';
+import { nanoid, processFootnotes } from '../../utils';
 import { inngest } from '../client';
 import { executeSearches } from './execute-searches';
 
@@ -73,7 +73,9 @@ export const deepResearch = inngest.createFunction(
 
 			// Save for later with IDs
 			for (const result of searchResults) {
+				console.log('result', result);
 				result.id = nanoid();
+				console.log(`Adding search result with ID: ${result.id}`);
 				allSearchResults.push(result);
 			}
 
@@ -87,12 +89,13 @@ export const deepResearch = inngest.createFunction(
 				const answer = await step.run(
 					'generate-answer-out-of-rounds',
 					async () => {
-						const answer = await b.CreateAnswer(
+						const rawAnswer = await b.CreateAnswer(
 							new Date().toLocaleDateString(),
 							args.research_topic,
 							allSearchResults,
 						);
-						return answer;
+						// Process footnotes to convert random IDs to numbered ones
+						return processFootnotes(rawAnswer, allSearchResults);
 					},
 				);
 				logger.info('Publishing final answer');
@@ -108,6 +111,7 @@ export const deepResearch = inngest.createFunction(
 					const reflection = await b.Reflect(
 						allSearchResults,
 						args.research_topic,
+						new Date().toLocaleDateString(),
 					);
 					if (!reflection) {
 						throw new NonRetriableError('Reflection is null');
@@ -131,12 +135,13 @@ export const deepResearch = inngest.createFunction(
 				const answer = await step.run(
 					'generate-answer-sufficient',
 					async () => {
-						const answer = await b.CreateAnswer(
+						const rawAnswer = await b.CreateAnswer(
 							new Date().toLocaleDateString(),
 							args.research_topic,
 							allSearchResults,
 						);
-						return answer;
+						// Process footnotes to convert random IDs to numbered ones
+						return processFootnotes(rawAnswer, allSearchResults);
 					},
 				);
 				logger.info('Publishing final answer');

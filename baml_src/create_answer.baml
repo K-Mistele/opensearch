@@ -37,9 +37,10 @@ function CreateAnswer(
         {% for summary in summaries %}
             <summary>
                 <id>{{summary.id}}</id>
-                <title>{{summary.title}}</title>
+                <title>{{summary.title}}</title>                
                 <url>{{summary.url}}</url>
                 <highlights>{{summary.highlights}}</highlights>
+                <text>{{summary.text}}</text>
             </summary>
         {% endfor %}
         </summaries>

@@ -77,7 +77,7 @@ export class HttpRequest {
   }
   
   Reflect(
-      summaries: SearchResult[],research_topic: string,
+      summaries: SearchResult[],research_topic: string,current_date: string,
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -85,7 +85,7 @@ export class HttpRequest {
       return this.runtime.buildRequestSync(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -149,7 +149,7 @@ export class HttpStreamRequest {
   }
   
   Reflect(
-      summaries: SearchResult[],research_topic: string,
+      summaries: SearchResult[],research_topic: string,current_date: string,
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -157,7 +157,7 @@ export class HttpStreamRequest {
       return this.runtime.buildRequestSync(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
