@@ -43,6 +43,7 @@ export type Step =
 	| SearchingStep
 	| SearchResultsStep
 	| ReflectionStep
+	| MaxStepsReachedStep
 	| AnswerStep;
 
 export interface AgentState {

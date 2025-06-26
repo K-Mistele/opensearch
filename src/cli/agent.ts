@@ -138,5 +138,16 @@ export async function executeAgent({
 		if (!reflection.followUpQueries)
 			throw new Error('Follow-up queries are not specified but should be!');
 		queries = reflection.followUpQueries;
+
+		// Emit follow-up queries for UI display
+		eventEmitter.emit('state-update', {
+			type: 'queries-generated',
+			data: {
+				query: reflection.followUpQueries,
+				rationale:
+					reflection.knowledgeGap ||
+					'Additional information needed to complete the research',
+			} satisfies SearchQueryList,
+		} satisfies QueriesGeneratedStep);
 	}
 }

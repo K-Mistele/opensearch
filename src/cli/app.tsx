@@ -82,24 +82,20 @@ const App: React.FC = () => {
 						);
 				}
 				if (step.type === 'search-results') {
+					const prevStep = steps[index - 1];
 					return (
 						<>
 							<SearchResults
-								queries={
-									steps[index - 1]!.data as Record<
-										string,
-										'pending' | 'completed'
-									>
-								}
+								queries={prevStep?.type === 'searching' ? prevStep.data : {}}
 								isSearching={false}
 								searchResults={step.data.searchResults}
-								key={`${step.type}-${index}`}
+								key={`search-results-${step.data.searchResults.length}`}
 							/>
 							<ReflectionStep
 								researchTopic={researchTopic}
 								searchResultsLength={step.data.allSearchResults.length}
 								isReflecting={true}
-								key={`${step.type}-${index}`}
+								key={`reflection-generating-${step.data.allSearchResults.length}`}
 							/>
 						</>
 					);
@@ -110,39 +106,108 @@ const App: React.FC = () => {
 					step.data.isSufficient &&
 					index === steps.length - 1
 				) {
+					const lastSearchResults = steps.findLast(
+						(step) => step.type === 'search-results',
+					);
 					return (
 						<>
 							<ReflectionStep
 								researchTopic={researchTopic}
 								isReflecting={false}
 								searchResultsLength={
-									steps.findLast((step) => step.type === 'search-results')!.data
-										.allSearchResults.length
+									lastSearchResults?.type === 'search-results'
+										? lastSearchResults.data.allSearchResults.length
+										: 0
 								}
 								reflection={step.data}
-								key={`${step.type}-${index}`}
+								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
 							/>
 							<FinalAnswer
 								searchResultsLength={
-									steps.findLast((step) => step.type === 'search-results')!.data
-										.allSearchResults.length
+									lastSearchResults?.type === 'search-results'
+										? lastSearchResults.data.allSearchResults.length
+										: 0
+								}
+								isGenerating={true}
+								key={`final-answer-generating-${index}`}
+							/>
+						</>
+					);
+				}
+				if (step.type === 'reflection-complete' && step.data.isSufficient) {
+					const lastSearchResults = steps.findLast(
+						(step) => step.type === 'search-results',
+					);
+					return (
+						<ReflectionStep
+							researchTopic={researchTopic}
+							isReflecting={false}
+							searchResultsLength={
+								lastSearchResults?.type === 'search-results'
+									? lastSearchResults.data.allSearchResults.length
+									: 0
+							}
+							reflection={step.data}
+							key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
+						/>
+					);
+				}
+
+				// Handle reflection insufficient but max steps reached
+				if (step.type === 'max-steps-reached') {
+					const lastSearchResults = steps.findLast(
+						(step) => step.type === 'search-results',
+					);
+					return (
+						<>
+							<Text bold color="red">
+								⚠️ Maximum research rounds reached. Generating final answer with
+								available information...
+							</Text>
+							<FinalAnswer
+								searchResultsLength={
+									lastSearchResults?.type === 'search-results'
+										? lastSearchResults.data.allSearchResults.length
+										: 0
 								}
 								isGenerating={true}
 							/>
 						</>
 					);
 				}
-				if (step.type === 'reflection-complete' && step.data.isSufficient) {
-					<ReflectionStep
-						researchTopic={researchTopic}
-						isReflecting={false}
-						searchResultsLength={
-							steps.findLast((step) => step.type === 'search-results')!.data
-								.allSearchResults.length
-						}
-						reflection={step.data}
-						key={`${step.type}-${index}`}
-					/>;
+
+				// Handle reflection insufficient - show follow-up queries
+				if (step.type === 'reflection-complete' && !step.data.isSufficient) {
+					const lastSearchResults = steps.findLast(
+						(step) => step.type === 'search-results',
+					);
+					const nextStep = index < steps.length - 1 ? steps[index + 1] : null;
+					return (
+						<>
+							<ReflectionStep
+								researchTopic={researchTopic}
+								isReflecting={false}
+								searchResultsLength={
+									lastSearchResults?.type === 'search-results'
+										? lastSearchResults.data.allSearchResults.length
+										: 0
+								}
+								reflection={step.data}
+								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
+							/>
+							{/* Show follow-up queries if they exist in the next step */}
+							{nextStep?.type === 'queries-generated' && (
+								<QueryGeneration
+									researchTopic={researchTopic}
+									isGenerating={false}
+									isFollowUp={true}
+									previousReflection={step.data}
+									queries={nextStep.data}
+									key={`follow-up-queries-${nextStep.data.query.length}`}
+								/>
+							)}
+						</>
+					);
 				}
 
 				if (step.type === 'answer') {
