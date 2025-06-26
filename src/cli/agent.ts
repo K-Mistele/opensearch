@@ -85,7 +85,10 @@ export async function executeAgent({
 		}
 		eventEmitter.emit('state-update', {
 			type: 'search-results',
-			data: searchResults,
+			data: {
+				searchResults: searchResults,
+				allSearchResults: state.searchResults,
+			},
 		} satisfies SearchResultsStep);
 
 		state.roundsLeft -= 1;

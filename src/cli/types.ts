@@ -17,12 +17,15 @@ export type SearchingStep = {
 
 export type SearchResultsStep = {
 	type: 'search-results';
-	data: Array<SearchResult>;
+	data: {
+		searchResults: Array<SearchResult>;
+		allSearchResults: Array<SearchResult>;
+	};
 };
 
 export type ReflectionStep = {
 	type: 'reflection-complete';
-	data: Reflection;
+	data: Reflection & {};
 };
 
 export type MaxStepsReachedStep = {

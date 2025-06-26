@@ -3,7 +3,9 @@ import type { EventEmitter } from 'node:events';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { eventEmitter, executeAgent } from './agent';
+import { FinalAnswer } from './components/final-answer.tsx';
 import { QueryGeneration } from './components/query-generation.tsx';
+import { ReflectionStep } from './components/reflection.tsx';
 import { ResearchInput } from './components/research-input.tsx';
 import { SearchResults } from './components/search-results.tsx';
 import type { Step } from './types';
@@ -68,27 +70,90 @@ const App: React.FC = () => {
 						/>
 					);
 				}
-				if (step.type === 'searching' && index === steps.length - 1) {
-					return (
-						<SearchResults
-							queries={step.data}
-							isSearching={true}
-							searchResults={[]}
-							key={`${step.type}-${index}`}
-						/>
-					);
+				if (step.type === 'searching') {
+					if (index === steps.length - 1)
+						return (
+							<SearchResults
+								queries={step.data}
+								isSearching={true}
+								searchResults={[]}
+								key={`${step.type}-${index}`}
+							/>
+						);
 				}
 				if (step.type === 'search-results') {
 					return (
-						<SearchResults
-							queries={
-								steps[index - 1]!.data as Record<
-									string,
-									'pending' | 'completed'
-								>
+						<>
+							<SearchResults
+								queries={
+									steps[index - 1]!.data as Record<
+										string,
+										'pending' | 'completed'
+									>
+								}
+								isSearching={false}
+								searchResults={step.data.searchResults}
+								key={`${step.type}-${index}`}
+							/>
+							<ReflectionStep
+								researchTopic={researchTopic}
+								searchResultsLength={step.data.allSearchResults.length}
+								isReflecting={true}
+								key={`${step.type}-${index}`}
+							/>
+						</>
+					);
+				}
+				// TODO handle if there are follow up queries
+				if (
+					step.type === 'reflection-complete' &&
+					step.data.isSufficient &&
+					index === steps.length - 1
+				) {
+					return (
+						<>
+							<ReflectionStep
+								researchTopic={researchTopic}
+								isReflecting={false}
+								searchResultsLength={
+									steps.findLast((step) => step.type === 'search-results')!.data
+										.allSearchResults.length
+								}
+								reflection={step.data}
+								key={`${step.type}-${index}`}
+							/>
+							<FinalAnswer
+								searchResultsLength={
+									steps.findLast((step) => step.type === 'search-results')!.data
+										.allSearchResults.length
+								}
+								isGenerating={true}
+							/>
+						</>
+					);
+				}
+				if (step.type === 'reflection-complete' && step.data.isSufficient) {
+					<ReflectionStep
+						researchTopic={researchTopic}
+						isReflecting={false}
+						searchResultsLength={
+							steps.findLast((step) => step.type === 'search-results')!.data
+								.allSearchResults.length
+						}
+						reflection={step.data}
+						key={`${step.type}-${index}`}
+					/>;
+				}
+
+				if (step.type === 'answer') {
+					return (
+						<FinalAnswer
+							searchResultsLength={
+								steps.findLast((step) => step.type === 'search-results')!.data
+									.allSearchResults.length
 							}
-							isSearching={false}
-							searchResults={step.data}
+							isGenerating={false}
+							answer={step.data}
 							key={`${step.type}-${index}`}
 						/>
 					);
