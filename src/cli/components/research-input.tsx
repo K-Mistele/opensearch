@@ -19,7 +19,13 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({ onSubmit }) => {
 	};
 
 	return (
-		<Box flexDirection="column">
+		<Box
+			flexDirection="column"
+			borderColor="magenta"
+			borderStyle="double"
+			paddingY={1}
+			paddingX={2}
+		>
 			<Box marginBottom={1}>
 				<Text bold>🔎 What would you like to research?</Text>
 			</Box>

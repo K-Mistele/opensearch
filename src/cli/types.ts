@@ -37,6 +37,7 @@ export type AnswerStep = {
 export type Step =
 	| InputStep
 	| QueriesGeneratedStep
+	| SearchingStep
 	| SearchResultsStep
 	| ReflectionStep
 	| AnswerStep;

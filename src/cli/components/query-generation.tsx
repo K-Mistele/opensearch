@@ -37,7 +37,7 @@ export const QueryGeneration: React.FC<QueryGenerationProps> = (props) => {
 		<Box
 			flexDirection="column"
 			borderColor="blue"
-			borderStyle="round"
+			borderStyle="double"
 			paddingX={2}
 			paddingY={1}
 		>

@@ -26,7 +26,7 @@ function GenerateQuery(
         - Queries should be specific and not too broad. Make sure to include important qualifiers and modifiers.
         - Query should ensure that the most current information is gathered. The current date is {{args.current_date}}.
         - We are using Exa's Search API so the queries should not use google-specific search operators
-        - If the query is complicated or multi-part (e.g. about multiple different entities or topics), break it down into multiple queries.
+        - If the query is complicated or multi-part (e.g. about multiple different people, businesses, entities or topics), break it down into multiple queries.
 
         The research topic is provided between <research_topic></research_topic> XML tags below.
         <research_topic>

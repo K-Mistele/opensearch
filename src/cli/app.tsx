@@ -1,10 +1,11 @@
-import { Box, Text } from 'ink';
+import { Text } from 'ink';
 import type { EventEmitter } from 'node:events';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { eventEmitter, executeAgent } from './agent';
 import { QueryGeneration } from './components/query-generation.tsx';
 import { ResearchInput } from './components/research-input.tsx';
+import { SearchResults } from './components/search-results.tsx';
 import type { Step } from './types';
 
 const App: React.FC = () => {
@@ -44,15 +45,7 @@ const App: React.FC = () => {
 	}, []);
 	return (
 		<>
-			<Box
-				flexDirection="column"
-				borderColor="magenta"
-				borderStyle="round"
-				paddingY={1}
-				paddingX={2}
-			>
-				<ResearchInput onSubmit={handleResearchTopicSubmit} />
-			</Box>
+			<ResearchInput onSubmit={handleResearchTopicSubmit} />
 			{steps.map((step, index) => {
 				if (step.type === 'input' && index === steps.length - 1) {
 					return (
@@ -71,6 +64,31 @@ const App: React.FC = () => {
 							isGenerating={false}
 							isFollowUp={false}
 							queries={step.data}
+							key={`${step.type}-${index}`}
+						/>
+					);
+				}
+				if (step.type === 'searching' && index === steps.length - 1) {
+					return (
+						<SearchResults
+							queries={step.data}
+							isSearching={true}
+							searchResults={[]}
+							key={`${step.type}-${index}`}
+						/>
+					);
+				}
+				if (step.type === 'search-results') {
+					return (
+						<SearchResults
+							queries={
+								steps[index - 1]!.data as Record<
+									string,
+									'pending' | 'completed'
+								>
+							}
+							isSearching={false}
+							searchResults={step.data}
 							key={`${step.type}-${index}`}
 						/>
 					);
