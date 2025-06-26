@@ -20,7 +20,7 @@ import { toBamlError, BamlStream, type HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {GenerateQueryArgs, Message, OverallState, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
+import type {GenerateQueryArgs, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 import { AsyncHttpRequest, AsyncHttpStreamRequest } from "./async_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -85,7 +85,7 @@ export class BamlAsyncClient {
 
   
   async CreateAnswer(
-      current_date: string,research_topic: string,summaries: string[],
+      current_date: string,research_topic: string,summaries: SearchResult[],
       __baml_options__?: BamlCallOptions
   ): Promise<string> {
     try {
@@ -174,7 +174,7 @@ class BamlStreamClient {
 
   
   CreateAnswer(
-      current_date: string,research_topic: string,summaries: string[],
+      current_date: string,research_topic: string,summaries: SearchResult[],
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
   ): BamlStream<string, string> {
     try {

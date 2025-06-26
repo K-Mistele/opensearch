@@ -26,8 +26,6 @@ export default class TypeBuilder {
     
     Message: ClassViewer<'Message', "role" | "content">;
     
-    OverallState: ClassViewer<'OverallState', "messages" | "search_query" | "web_research_result" | "sources_gathered" | "initial_search_query_count" | "max_research_loops" | "research_loop_count" | "reasoning_model">;
-    
     Query: ClassViewer<'Query', "query" | "rationale">;
     
     QueryGenerationState: ClassViewer<'QueryGenerationState', "search_query">;
@@ -49,7 +47,7 @@ export default class TypeBuilder {
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "GenerateQueryArgs","Message","OverallState","Query","QueryGenerationState","Reflection","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","WebSearchState",
+            "GenerateQueryArgs","Message","Query","QueryGenerationState","Reflection","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","WebSearchState",
           ]),
           enums: new Set([
             
@@ -63,10 +61,6 @@ export default class TypeBuilder {
         
         this.Message = this.tb.classViewer("Message", [
           "role","content",
-        ]);
-        
-        this.OverallState = this.tb.classViewer("OverallState", [
-          "messages","search_query","web_research_result","sources_gathered","initial_search_query_count","max_research_loops","research_loop_count","reasoning_model",
         ]);
         
         this.Query = this.tb.classViewer("Query", [

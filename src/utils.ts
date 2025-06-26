@@ -74,7 +74,7 @@ export function insertCitationMarkers(
 		// but since we iterate from the end, they remain valid for insertion
 		// relative to the parts of the string already processed.
 		const endIdx = citationInfo.end_index;
-		let markerToInsert = "";
+		let markerToInsert = '';
 
 		for (const segment of citationInfo.segments) {
 			markerToInsert += ` [${segment.label}](${segment.short_url})`;
@@ -162,10 +162,10 @@ export function getCitations(
 							: resolvedUrlsMap[chunk.web.uri];
 
 					if (resolvedUrl) {
-						const titleParts = chunk.web.title.split(".");
+						const titleParts = chunk.web.title.split('.');
 						const label =
 							titleParts.length > 1
-								? titleParts.slice(0, -1).join(".")
+								? titleParts.slice(0, -1).join('.')
 								: chunk.web.title;
 
 						citation.segments.push({
@@ -194,4 +194,22 @@ export function requireEnvironment(key: string): string {
 		throw new Error(`Environment variable ${key} is not set`);
 	}
 	return value;
+}
+
+/**
+ * Generates a random alphanumeric string of specified length.
+ *
+ * @param len - The length of the string to generate
+ * @returns A random alphanumeric string
+ */
+export function nanoid(len = 10): string {
+	const chars =
+		'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	let result = '';
+
+	for (let i = 0; i < len; i++) {
+		result += chars.charAt(Math.floor(Math.random() * chars.length));
+	}
+
+	return result;
 }

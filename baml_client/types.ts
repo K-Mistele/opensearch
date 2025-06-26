@@ -59,18 +59,6 @@ export interface Message {
   
 }
 
-export interface OverallState {
-  messages: Message[]
-  search_query: string[]
-  web_research_result: string[]
-  sources_gathered: string[]
-  initial_search_query_count: number
-  max_research_loops: number
-  research_loop_count: number
-  reasoning_model: string
-  
-}
-
 export interface Query {
   query: string
   rationale: string

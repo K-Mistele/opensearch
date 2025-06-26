@@ -1,9 +1,4 @@
 
-class GenerateQueryArgs {
-    research_topic string
-    current_date string
-    number_queries int?
-}
 /// Generate an optimized query (or several) for web research
 function GenerateQuery(
     args: GenerateQueryArgs,
@@ -30,6 +25,7 @@ function GenerateQuery(
         - Don't generate multiple similar queries, 1 is enough.
         - Queries should be specific and not too broad. Make sure to include important qualifiers and modifiers.
         - Query should ensure that the most current information is gathered. The current date is {{args.current_date}}.
+        - We are using Exa's Search API so the queries should not use google-specific search operators
 
         The research topic is provided between <research_topic></research_topic> XML tags below.
         <research_topic>

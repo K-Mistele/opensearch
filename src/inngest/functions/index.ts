@@ -1,4 +1,4 @@
-import { executeSearches } from "./execute-searches";
-import { generateQuery } from "./generate-query";
+import { deepResearch } from './deep-research';
+import { executeSearches } from './execute-searches';
 
-export const functions = [generateQuery, executeSearches];
+export const functions = [executeSearches, deepResearch];

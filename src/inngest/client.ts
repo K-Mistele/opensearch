@@ -1,8 +1,10 @@
-import { Inngest } from "inngest";
-import { requireEnvironment } from "../utils";
+import { realtimeMiddleware } from '@inngest/realtime';
+import { Inngest } from 'inngest';
+import { requireEnvironment } from '../utils';
 
 export const inngest = new Inngest({
-	id: "opensearch2",
-	isDev: process.env.NODE_ENV !== "production",
-	baseUrl: requireEnvironment("INNGEST_BASE_URL"),
+	id: 'opensearch3',
+	isDev: process.env.NODE_ENV !== 'production',
+	baseUrl: requireEnvironment('INNGEST_BASE_URL'),
+	middleware: [realtimeMiddleware()],
 });

@@ -19,7 +19,7 @@ import type { BamlRuntime, BamlCtxManager, ClientRegistry, Image, Audio } from "
 import { toBamlError, HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type * as types from "./types"
-import type {GenerateQueryArgs, Message, OverallState, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
+import type {GenerateQueryArgs, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 
 type BamlCallOptions = {
@@ -33,7 +33,7 @@ export class HttpRequest {
 
   
   CreateAnswer(
-      current_date: string,research_topic: string,summaries: string[],
+      current_date: string,research_topic: string,summaries: SearchResult[],
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -105,7 +105,7 @@ export class HttpStreamRequest {
 
   
   CreateAnswer(
-      current_date: string,research_topic: string,summaries: string[],
+      current_date: string,research_topic: string,summaries: SearchResult[],
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {

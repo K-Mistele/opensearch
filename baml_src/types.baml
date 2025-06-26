@@ -1,3 +1,9 @@
+
+class GenerateQueryArgs {
+    research_topic string
+    current_date string
+    number_queries int?
+}
 // State management types for the research workflow
 class SearchQueryList {
     query string[] @description("A list of search queries to be used for web research.")
@@ -17,16 +23,6 @@ class Message {
     content string @description("The content of the message")
 }
 
-class OverallState {
-    messages Message[] @description("List of messages in the conversation")
-    search_query string[] @description("List of search queries generated")
-    web_research_result string[] @description("Results from web research")
-    sources_gathered string[] @description("Sources collected during research")
-    initial_search_query_count int @description("Initial count of search queries")
-    max_research_loops int @description("Maximum number of research loops allowed")
-    research_loop_count int @description("Current research loop count")
-    reasoning_model string @description("The model used for reasoning")
-}
 
 class ReflectionState {
     is_sufficient bool @description("Whether the current information is sufficient")
