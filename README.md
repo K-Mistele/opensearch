@@ -1,5 +1,3 @@
-# OpenSearch: AI-Powered Multi-Round Research Agent
-
 ```
   ██████╗  ██████╗  ███████╗ ███╗   ██╗ ███████╗ ███████╗  █████╗  ██████╗   ██████╗ ██╗  ██╗
  ██╔═══██╗ ██╔══██╗ ██╔════╝ ████╗  ██║ ██╔════╝ ██╔════╝ ██╔══██╗ ██╔══██╗ ██╔════╝ ██║  ██║
@@ -8,6 +6,9 @@
  ╚██████╔╝ ██║      ███████╗ ██║ ╚████║ ███████║ ███████╗ ██║  ██║ ██║  ██║ ╚██████╗ ██║  ██║
   ╚═════╝  ╚═╝      ╚══════╝ ╚═╝  ╚═══╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝  ╚═════╝ ╚═╝  ╚═╝
 ```
+
+# OpenSearch: AI-Powered Multi-Round Research Agent
+
 
 An AI-powered research agent that conducts sophisticated multi-round web research with knowledge gap tracking, strategic query generation, and comprehensive answer synthesis.
 
