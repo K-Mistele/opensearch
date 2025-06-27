@@ -1,6 +1,11 @@
 import { exa } from '@/inngest/functions/execute-searches';
 import { nanoid, processFootnotes } from '@/utils';
-import { type SearchQueryList, type SearchResult, b } from '@baml-client';
+import {
+	type ExtractedFact,
+	type SearchQueryList,
+	type SearchResult,
+	b,
+} from '@baml-client';
 import { EventEmitter } from 'node:events';
 import type {
 	AgentState,
@@ -11,6 +16,7 @@ import type {
 	ReflectionStep,
 	SearchResultsStep,
 	SearchingStep,
+	SummarizationStep,
 } from './types';
 
 export const eventEmitter = new EventEmitter();
@@ -49,9 +55,8 @@ export async function executeAgent({
 		data: initialQueries,
 	} satisfies QueriesGeneratedStep);
 
-	// Track relevant summaries (those that contain unique, non-duplicate information)
-	const relevantSummaries: Array<SearchResult> = [];
-	const relevantSummaryIds: Array<string> = [];
+	// Track extracted facts (those that contain concise, relevant information)
+	const extractedFacts: Array<ExtractedFact> = [];
 
 	// Track which questions from the query plan have been answered
 	let answeredQuestions: Array<number> = [];
@@ -110,15 +115,31 @@ export async function executeAgent({
 			eventEmitter.emit('state-update', {
 				type: 'max-steps-reached',
 			} satisfies MaxStepsReachedStep);
-			const answer = await b.CreateAnswer(
-				new Date().toLocaleDateString(),
-				researchTopic,
-				relevantSummaries.length > 0 ? relevantSummaries : state.searchResults,
-			);
-			state.answer = processFootnotes(
-				answer,
-				relevantSummaries.length > 0 ? relevantSummaries : state.searchResults,
-			);
+
+			let answer: string;
+			if (extractedFacts.length > 0) {
+				answer = await b.CreateAnswerFromFacts(
+					new Date().toLocaleDateString(),
+					researchTopic,
+					extractedFacts,
+				);
+				// Create sources map from all search results for citation lookup
+				const sourcesMap = new Map(
+					state.searchResults.map((result) => [
+						result.id || '',
+						{ url: result.url || '', title: result.title || null },
+					]),
+				);
+				state.answer = processFootnotes(answer, extractedFacts, sourcesMap);
+			} else {
+				answer = await b.CreateAnswer(
+					new Date().toLocaleDateString(),
+					researchTopic,
+					state.searchResults,
+				);
+				state.answer = processFootnotes(answer, state.searchResults);
+			}
+
 			eventEmitter.emit('state-update', {
 				type: 'answer',
 				data: state.answer,
@@ -137,17 +158,6 @@ export async function executeAgent({
 			originalMaxRounds,
 		);
 
-		// Update relevant summaries based on reflection
-		const newRelevantSummaries = searchResults.filter((summary) =>
-			reflection.relevantSummaryIds.includes(summary.id),
-		);
-		relevantSummaries.push(...newRelevantSummaries);
-		relevantSummaryIds.push(...reflection.relevantSummaryIds);
-
-		console.log(
-			`Added ${newRelevantSummaries.length} new relevant summaries. Total relevant: ${relevantSummaries.length}`,
-		);
-
 		// Update question tracking based on reflection results
 		answeredQuestions = reflection.answeredQuestions;
 		unansweredQuestions = reflection.unansweredQuestions;
@@ -156,20 +166,75 @@ export async function executeAgent({
 			type: 'reflection-complete',
 			data: {
 				...reflection,
-				relevantSummariesCount: relevantSummaries.length,
+				relevantSummariesCount: extractedFacts.length,
 			},
 		} satisfies ReflectionStep);
 
-		if (reflection.isSufficient) {
-			const answer = await b.CreateAnswer(
-				new Date().toLocaleDateString(),
+		// Extract facts from relevant sources if any were identified
+		if (reflection.relevantSummaryIds.length > 0) {
+			const relevantSources = searchResults.filter((summary) =>
+				reflection.relevantSummaryIds.includes(summary.id),
+			);
+
+			console.log(
+				`Extracting facts from ${relevantSources.length} relevant sources...`,
+			);
+
+			// Emit fact extraction start event
+			eventEmitter.emit('state-update', {
+				type: 'summarization',
+				isExtracting: true,
+				relevantSourcesCount: relevantSources.length,
+			} satisfies SummarizationStep);
+
+			// Extract facts from relevant sources
+			const newExtractedFacts = await b.ExtractRelevantFacts(
+				relevantSources,
 				researchTopic,
-				relevantSummaries.length > 0 ? relevantSummaries : state.searchResults,
+				initialQueries.queryPlan,
+				reflection,
+				new Date().toLocaleDateString(),
 			);
-			state.answer = processFootnotes(
-				answer,
-				relevantSummaries.length > 0 ? relevantSummaries : state.searchResults,
+
+			extractedFacts.push(...newExtractedFacts);
+
+			console.log(
+				`Extracted ${newExtractedFacts.length} fact sets. Total extracted facts: ${extractedFacts.length}`,
 			);
+
+			// Emit fact extraction complete event
+			eventEmitter.emit('state-replace', {
+				type: 'summarization',
+				isExtracting: false,
+				extractedFacts: newExtractedFacts,
+			} satisfies SummarizationStep);
+		}
+
+		if (reflection.isSufficient) {
+			let answer: string;
+			if (extractedFacts.length > 0) {
+				answer = await b.CreateAnswerFromFacts(
+					new Date().toLocaleDateString(),
+					researchTopic,
+					extractedFacts,
+				);
+				// Create sources map from all search results for citation lookup
+				const sourcesMap = new Map(
+					state.searchResults.map((result) => [
+						result.id || '',
+						{ url: result.url || '', title: result.title || null },
+					]),
+				);
+				state.answer = processFootnotes(answer, extractedFacts, sourcesMap);
+			} else {
+				answer = await b.CreateAnswer(
+					new Date().toLocaleDateString(),
+					researchTopic,
+					state.searchResults,
+				);
+				state.answer = processFootnotes(answer, state.searchResults);
+			}
+
 			eventEmitter.emit('state-update', {
 				type: 'answer',
 				data: state.answer,

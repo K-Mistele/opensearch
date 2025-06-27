@@ -1,4 +1,5 @@
 import type {
+	ExtractedFact,
 	GenerateQueryArgs,
 	Reflection,
 	SearchQueryList,
@@ -15,6 +16,7 @@ export const resultsChannel = channel((uuid: string) => `deep-research.${uuid}`)
 	.addTopic(topic('initialQueries').type<SearchQueryList>())
 	.addTopic(topic('webSearchResults').type<SearchResult[]>())
 	.addTopic(topic('reflection').type<Reflection>())
+	.addTopic(topic('summarization').type<ExtractedFact[]>())
 	.addTopic(topic('finalAnswer').type<string>());
 
 export type DeepResearchInvocation = GenerateQueryArgs & {
@@ -53,9 +55,8 @@ export const deepResearch = inngest.createFunction(
 
 		const allSearchResults: Array<SearchResult> = [];
 
-		// Track relevant summaries (those that contain unique, non-duplicate information)
-		const relevantSummaries: Array<SearchResult> = [];
-		const relevantSummaryIds: Array<string> = [];
+		// Track extracted facts (those that contain concise, relevant information)
+		const extractedFacts: Array<ExtractedFact> = [];
 
 		// Track which questions from the query plan have been answered
 		let answeredQuestions: Array<number> = [];
@@ -118,20 +119,28 @@ export const deepResearch = inngest.createFunction(
 				const answer = await step.run(
 					'generate-answer-out-of-rounds',
 					async () => {
-						const rawAnswer = await b.CreateAnswer(
+						let rawAnswer: string;
+						if (extractedFacts.length > 0) {
+							rawAnswer = await b.CreateAnswerFromFacts(
+								new Date().toLocaleDateString(),
+								args.research_topic,
+								extractedFacts,
+							);
+							// Create sources map from all search results for citation lookup
+							const sourcesMap = new Map(
+								allSearchResults.map((result) => [
+									result.id || '',
+									{ url: result.url || '', title: result.title || null },
+								]),
+							);
+							return processFootnotes(rawAnswer, extractedFacts, sourcesMap);
+						}
+						rawAnswer = await b.CreateAnswer(
 							new Date().toLocaleDateString(),
 							args.research_topic,
-							relevantSummaries.length > 0
-								? relevantSummaries
-								: allSearchResults,
+							allSearchResults,
 						);
-						// Process footnotes to convert random IDs to numbered ones
-						return processFootnotes(
-							rawAnswer,
-							relevantSummaries.length > 0
-								? relevantSummaries
-								: allSearchResults,
-						);
+						return processFootnotes(rawAnswer, allSearchResults);
 					},
 				);
 				logger.info('Publishing final answer');
@@ -189,23 +198,46 @@ export const deepResearch = inngest.createFunction(
 				},
 			);
 
-			// Update relevant summaries based on reflection
-			const newRelevantSummaries = searchResults.filter((summary) =>
-				reflection.relevantSummaryIds.includes(summary.id),
-			);
-			relevantSummaries.push(...newRelevantSummaries);
-			relevantSummaryIds.push(...reflection.relevantSummaryIds);
-
-			logger.info(
-				`Added ${newRelevantSummaries.length} new relevant summaries. Total relevant: ${relevantSummaries.length}`,
-			);
-
 			// Update question tracking based on reflection results
 			answeredQuestions = reflection.answeredQuestions;
 			unansweredQuestions = reflection.unansweredQuestions;
 
 			logger.info('Reflection Completed; publishing reflection.');
 			await publish(resultsChannel(uuid).reflection(reflection));
+
+			// Extract facts from relevant sources if any were identified
+			if (reflection.relevantSummaryIds.length > 0) {
+				const relevantSources = searchResults.filter((summary) =>
+					reflection.relevantSummaryIds.includes(summary.id),
+				);
+
+				logger.info(
+					`Extracting facts from ${relevantSources.length} relevant sources...`,
+				);
+
+				// Extract facts from relevant sources
+				const newExtractedFacts = await step.run(
+					'extract-relevant-facts',
+					async () => {
+						return await b.ExtractRelevantFacts(
+							relevantSources,
+							args.research_topic,
+							initialQueryInformation.queryPlan,
+							reflection,
+							new Date().toLocaleDateString(),
+						);
+					},
+				);
+
+				extractedFacts.push(...newExtractedFacts);
+
+				logger.info(
+					`Extracted ${newExtractedFacts.length} fact sets. Total extracted facts: ${extractedFacts.length}`,
+				);
+
+				// Publish fact extraction results
+				await publish(resultsChannel(uuid).summarization(newExtractedFacts));
+			}
 
 			// check if we should go again
 			if (reflection.isSufficient) {
@@ -219,26 +251,34 @@ export const deepResearch = inngest.createFunction(
 					`Final unanswered questions: ${JSON.stringify(reflection.unansweredQuestions)}`,
 				);
 				logger.info(
-					`Using ${relevantSummaries.length > 0 ? relevantSummaries.length : allSearchResults.length} summaries for answer generation`,
+					`Using ${extractedFacts.length > 0 ? extractedFacts.length : allSearchResults.length} sources for answer generation`,
 				);
 
 				const answer = await step.run(
 					'generate-answer-sufficient',
 					async () => {
-						const rawAnswer = await b.CreateAnswer(
+						let rawAnswer: string;
+						if (extractedFacts.length > 0) {
+							rawAnswer = await b.CreateAnswerFromFacts(
+								new Date().toLocaleDateString(),
+								args.research_topic,
+								extractedFacts,
+							);
+							// Create sources map from all search results for citation lookup
+							const sourcesMap = new Map(
+								allSearchResults.map((result) => [
+									result.id || '',
+									{ url: result.url || '', title: result.title || null },
+								]),
+							);
+							return processFootnotes(rawAnswer, extractedFacts, sourcesMap);
+						}
+						rawAnswer = await b.CreateAnswer(
 							new Date().toLocaleDateString(),
 							args.research_topic,
-							relevantSummaries.length > 0
-								? relevantSummaries
-								: allSearchResults,
+							allSearchResults,
 						);
-						// Process footnotes to convert random IDs to numbered ones
-						return processFootnotes(
-							rawAnswer,
-							relevantSummaries.length > 0
-								? relevantSummaries
-								: allSearchResults,
-						);
+						return processFootnotes(rawAnswer, allSearchResults);
 					},
 				);
 				logger.info('Publishing final answer');

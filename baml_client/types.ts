@@ -46,6 +46,13 @@ export function all_succeeded<CheckName extends string>(checks: Record<CheckName
 export function get_checks<CheckName extends string>(checks: Record<CheckName, Check>): Check[] {
     return Object.values(checks)
 }
+export interface ExtractedFact {
+  sourceId: string
+  relevantFacts: string[]
+  summary: string
+  
+}
+
 export interface GenerateQueryArgs {
   research_topic: string
   current_date: string

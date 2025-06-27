@@ -22,6 +22,8 @@ import { DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME } from "./
 export default class TypeBuilder {
     private tb: _TypeBuilder;
     
+    ExtractedFact: ClassViewer<'ExtractedFact', "sourceId" | "relevantFacts" | "summary">;
+    
     GenerateQueryArgs: ClassViewer<'GenerateQueryArgs', "research_topic" | "current_date" | "number_queries">;
     
     Message: ClassViewer<'Message', "role" | "content">;
@@ -47,13 +49,17 @@ export default class TypeBuilder {
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "GenerateQueryArgs","Message","Query","QueryGenerationState","Reflection","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","WebSearchState",
+            "ExtractedFact","GenerateQueryArgs","Message","Query","QueryGenerationState","Reflection","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","WebSearchState",
           ]),
           enums: new Set([
             
           ]),
           runtime: DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME
         });
+        
+        this.ExtractedFact = this.tb.classViewer("ExtractedFact", [
+          "sourceId","relevantFacts","summary",
+        ]);
         
         this.GenerateQueryArgs = this.tb.classViewer("GenerateQueryArgs", [
           "research_topic","current_date","number_queries",

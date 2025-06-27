@@ -6,6 +6,7 @@ import type { EventEmitter } from 'node:events';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { eventEmitter, executeAgent } from './agent';
+import { FactExtraction } from './components/fact-extraction.tsx';
 import { FinalAnswer } from './components/final-answer.tsx';
 import { QueryGeneration } from './components/query-generation.tsx';
 import { ReflectionStep } from './components/reflection.tsx';
@@ -205,6 +206,9 @@ const App: React.FC = () => {
 					);
 					const isLastStep = index === steps.length - 1;
 					const hasAnswerStep = steps.some((s) => s.type === 'answer');
+					const hasSummarizationStep = steps
+						.slice(index + 1)
+						.some((s) => s.type === 'summarization');
 
 					return (
 						<>
@@ -221,12 +225,60 @@ const App: React.FC = () => {
 								roundNumber={roundNumber}
 								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
 							/>
-							{/* Only show generating final answer if this is the last step and there's no answer yet */}
-							{isLastStep && !hasAnswerStep && (
+							{/* Show fact extraction if no summarization step exists yet and this is the last step */}
+							{!hasSummarizationStep &&
+								isLastStep &&
+								step.data.relevantSummariesCount > 0 && (
+									<FactExtraction
+										isExtracting={true}
+										relevantSourcesCount={step.data.relevantSummariesCount}
+										roundNumber={roundNumber}
+										key={`fact-extraction-generating-${Date.now()}`}
+									/>
+								)}
+							{/* Only show generating final answer if this is the last step, there's no answer yet, and no pending summarization */}
+							{isLastStep &&
+								!hasAnswerStep &&
+								!hasSummarizationStep &&
+								step.data.relevantSummariesCount === 0 && (
+									<FinalAnswer
+										relevantSummariesCount={step.data.relevantSummariesCount}
+										isGenerating={true}
+										key={`final-answer-generating-${Date.now()}`}
+									/>
+								)}
+						</>
+					);
+				}
+
+				// Handle summarization step
+				if (step.type === 'summarization') {
+					const isLastStep = index === steps.length - 1;
+					const hasAnswerStep = steps.some((s) => s.type === 'answer');
+
+					return (
+						<>
+							{step.isExtracting ? (
+								<FactExtraction
+									isExtracting={true}
+									relevantSourcesCount={step.relevantSourcesCount}
+									roundNumber={roundNumber}
+									key={`fact-extraction-generating-${Date.now()}`}
+								/>
+							) : (
+								<FactExtraction
+									isExtracting={false}
+									extractedFacts={step.extractedFacts}
+									roundNumber={roundNumber}
+									key={`fact-extraction-complete-${Date.now()}`}
+								/>
+							)}
+							{/* Show generating final answer if fact extraction is complete, this is the last step, and no answer yet */}
+							{!step.isExtracting && isLastStep && !hasAnswerStep && (
 								<FinalAnswer
-									relevantSummariesCount={step.data.relevantSummariesCount}
+									relevantSummariesCount={step.extractedFacts.length}
 									isGenerating={true}
-									key={`final-answer-generating-${Date.now()}`}
+									key={`final-answer-generating-after-extraction-${Date.now()}`}
 								/>
 							)}
 						</>

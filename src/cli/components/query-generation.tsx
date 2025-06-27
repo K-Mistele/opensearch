@@ -1,4 +1,4 @@
-import type { Reflection, SearchQueryList } from '@baml-client';
+import type { SearchQueryList } from '@baml-client';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 import type React from 'react';
@@ -9,7 +9,6 @@ type QueryGenerationProps = {
 } & (
 	| {
 			isFollowUp: true;
-			previousReflection?: Reflection;
 	  }
 	| {
 			isFollowUp: false;
@@ -60,16 +59,6 @@ export const QueryGeneration: React.FC<QueryGenerationProps> = (props) => {
 				<Text color="gray">Topic: {researchTopic}</Text>
 			</Box>
 
-			{isFollowUp &&
-				'previousReflection' in props &&
-				props.previousReflection?.knowledgeGap && (
-					<Box marginBottom={1}>
-						<Text color="yellow">
-							Gap: {props.previousReflection.knowledgeGap}
-						</Text>
-					</Box>
-				)}
-
 			{isGenerating ? (
 				<Box marginBottom={1}>
 					<Text color="blue">
@@ -105,16 +94,18 @@ export const QueryGeneration: React.FC<QueryGenerationProps> = (props) => {
 							<Text color="gray">{props.queries.rationale}</Text>
 						</Box>
 
-						<Box flexDirection="column">
-							<Text bold color="white">
-								Query Plan (Questions to Answer):
-							</Text>
-							{props.queries.queryPlan.map((question: string) => (
-								<Text key={question} color="magenta">
-									• {question}
+						{!isFollowUp && (
+							<Box flexDirection="column">
+								<Text bold color="white">
+									Query Plan (Questions to Answer):
 								</Text>
-							))}
-						</Box>
+								{props.queries.queryPlan.map((question: string) => (
+									<Text key={question} color="magenta">
+										• {question}
+									</Text>
+								))}
+							</Box>
+						)}
 					</Box>
 				)
 			)}

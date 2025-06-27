@@ -8,7 +8,7 @@ function Reflect(
     currentRound: int,
     maxRounds: int,
 ) -> Reflection {
-    client "google-ai/gemini-2.5-pro"
+    client "google-ai/gemini-2.5-flash"
     prompt #"
     You are an expert research assistant analyzing summaries about "{{research_topic}}".
 

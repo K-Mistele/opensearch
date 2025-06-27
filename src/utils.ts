@@ -1,3 +1,5 @@
+import type { ExtractedFact } from '@baml-client';
+
 // Types for citation handling
 export interface CitationSegment {
 	label: string;
@@ -219,6 +221,21 @@ export function nanoid(len = 10): string {
  * and adds proper MDX footnote definitions at the bottom.
  *
  * @param text - The markdown text containing footnotes like [^randomId] or [^id1,id2]
+ * @param extractedFacts - Array of extracted facts to map footnote IDs to
+ * @param sourcesMap - Map of sourceId to original SearchResult for url/title lookup
+ * @returns The processed text with numbered footnotes and definitions
+ */
+export function processFootnotes(
+	text: string,
+	extractedFacts: Array<ExtractedFact>,
+	sourcesMap: Map<string, { url: string; title: string | null }>,
+): string;
+
+/**
+ * Processes markdown text to convert random ID footnotes to numbered footnotes
+ * and adds proper MDX footnote definitions at the bottom.
+ *
+ * @param text - The markdown text containing footnotes like [^randomId] or [^id1,id2]
  * @param searchResults - Array of search results to map footnote IDs to
  * @returns The processed text with numbered footnotes and definitions
  */
@@ -229,6 +246,18 @@ export function processFootnotes(
 		title?: string | null;
 		url?: string | null;
 	}>,
+): string;
+
+export function processFootnotes(
+	text: string,
+	sources:
+		| Array<{
+				id?: string | null;
+				title?: string | null;
+				url?: string | null;
+		  }>
+		| Array<ExtractedFact>,
+	sourcesMap?: Map<string, { url: string; title: string | null }>,
 ): string {
 	// Find all footnote references in the format [^ID] or [^ID1,ID2,...]
 	const footnoteRegex = /\[\^([^\]]+)\]/g;
@@ -255,19 +284,38 @@ export function processFootnotes(
 				if (footnoteId && !foundFootnotes.has(footnoteId)) {
 					foundFootnotes.set(footnoteId, footnoteCounter);
 
-					// Find the corresponding search result
-					const searchResult = searchResults.find(
-						(result) => result.id === footnoteId,
-					);
-					if (searchResult) {
-						// Create footnote definition
-						const title = searchResult.title ?? 'Untitled';
-						const url = searchResult.url ?? '#';
+					let title: string | null = null;
+					let url: string | null = null;
+
+					// Handle ExtractedFact with sourcesMap
+					if (
+						sourcesMap &&
+						sources.length > 0 &&
+						sources[0] &&
+						'sourceId' in sources[0]
+					) {
+						const sourceInfo = sourcesMap.get(footnoteId);
+						if (sourceInfo) {
+							title = sourceInfo.title;
+							url = sourceInfo.url;
+						}
+					} else {
+						// Handle SearchResult array
+						const source = sources.find((source) => {
+							return 'id' in source && source.id === footnoteId;
+						});
+						if (source && 'title' in source && 'url' in source) {
+							title = source.title ?? null;
+							url = source.url ?? null;
+						}
+					}
+
+					if (title && url) {
 						footnoteDefinitions.push(
 							`[^${footnoteCounter}]: [${title}](${url})`,
 						);
 					} else {
-						// Fallback if search result not found
+						// Fallback if source not found
 						footnoteDefinitions.push(
 							`[^${footnoteCounter}]: Reference not found`,
 						);

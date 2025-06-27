@@ -14,7 +14,7 @@ class Reflection {
     isSufficient bool @description("Whether the provided summaries are sufficient to answer the user's question and any remaining unanswered questions from the query plan")
     answeredQuestions int[] @description("IDs of questions from the query plan that have been sufficiently answered based on the current search results")
     unansweredQuestions int[] @description("IDs of questions from the query plan that still need to be addressed")
-    knowledgeGap string? @description("A description of what information is missing or needs clarification, if isSufficient is false")
+    knowledgeGap string? @description("A description of what information is missing or needs clarification, if isSufficient is false. This should be short and concise, no more than 2 sentences.")
     followUpQueries string[]? @description("A list of follow-up web search queries to be researched to address the knowledge gap, if isSufficient is false. Remember that we are using Exa's Search API so the queries should not use google-specific search operators")
     followupQueriesRationale string[]? @description("Your rationale for why these follow-up queries are relevant to the research topic in the context of the knowledge gap, addressed as though you were speaking to a user explaining what you are doing (if isSufficient is false)")
     relevantSummaryIds string[] @description("IDs of summaries that contain unique, relevant information for answering the research topic and query plan. Only include summaries that contain information which is directly relevant to the research topic/query plan and which is not already contained by other summaries")
@@ -60,4 +60,10 @@ class SearchResult {
     highlights string[] @description("The highlights of the search result")
     highlightScores float[] @description("The highlight scores of the search result")
     text string @description("The text of the search result")
+}
+
+class ExtractedFact {
+    sourceId string @description("ID matching the original Search Result for citation purposes")
+    relevantFacts string[] @description("Array of concise facts relevant to the query plan (max 5 facts, 2-3 sentences each, only extract what's necessary)")
+    summary string @description("Brief summary of the source's relevance to the research topic")
 }

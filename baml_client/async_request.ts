@@ -19,7 +19,7 @@ import type { BamlRuntime, BamlCtxManager, ClientRegistry, Image, Audio } from "
 import { toBamlError, HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type * as types from "./types"
-import type {GenerateQueryArgs, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
+import type {ExtractedFact, GenerateQueryArgs, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 
 type BamlCallOptions = {
@@ -42,6 +42,50 @@ export class AsyncHttpRequest {
         "CreateAnswer",
         {
           "current_date": current_date,"research_topic": research_topic,"summaries": summaries
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async CreateAnswerFromFacts(
+      current_date: string,research_topic: string,extractedFacts: ExtractedFact[],
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return await this.runtime.buildRequest(
+        "CreateAnswerFromFacts",
+        {
+          "current_date": current_date,"research_topic": research_topic,"extractedFacts": extractedFacts
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async ExtractRelevantFacts(
+      relevantSources: SearchResult[],research_topic: string,queryPlan: string[],reflection: Reflection,current_date: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return await this.runtime.buildRequest(
+        "ExtractRelevantFacts",
+        {
+          "relevantSources": relevantSources,"research_topic": research_topic,"queryPlan": queryPlan,"reflection": reflection,"current_date": current_date
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -114,6 +158,50 @@ export class AsyncHttpStreamRequest {
         "CreateAnswer",
         {
           "current_date": current_date,"research_topic": research_topic,"summaries": summaries
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async CreateAnswerFromFacts(
+      current_date: string,research_topic: string,extractedFacts: ExtractedFact[],
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return await this.runtime.buildRequest(
+        "CreateAnswerFromFacts",
+        {
+          "current_date": current_date,"research_topic": research_topic,"extractedFacts": extractedFacts
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  async ExtractRelevantFacts(
+      relevantSources: SearchResult[],research_topic: string,queryPlan: string[],reflection: Reflection,current_date: string,
+      __baml_options__?: BamlCallOptions
+  ): Promise<HTTPRequest> {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return await this.runtime.buildRequest(
+        "ExtractRelevantFacts",
+        {
+          "relevantSources": relevantSources,"research_topic": research_topic,"queryPlan": queryPlan,"reflection": reflection,"current_date": current_date
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

@@ -79,79 +79,63 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 							</Text>
 						</Box>
 
+						{/* Knowledge Gap */}
 						{!props.reflection.isSufficient &&
 							props.reflection.knowledgeGap && (
 								<Box marginBottom={1} flexDirection="column">
 									<Text bold color="yellow">
 										Knowledge Gap:
 									</Text>
-									<Text color="yellow">{props.reflection.knowledgeGap}</Text>
+									<Text color="white">{props.reflection.knowledgeGap}</Text>
 								</Box>
 							)}
 
-						{props.reflection.answeredQuestions &&
-							props.reflection.answeredQuestions.length > 0 && (
-								<Box marginBottom={1} flexDirection="column">
-									<Text bold color="green">
-										Questions Answered:
-									</Text>
-									{props.reflection.answeredQuestions.map((questionIndex) => (
-										<Text key={questionIndex} color="green">
-											✓{' '}
-											{props.queryPlan?.[questionIndex] ??
-												`Question ${questionIndex}`}
+						{/* Query Plan Progress */}
+						{props.queryPlan && props.queryPlan.length > 0 && (
+							<Box marginBottom={1} flexDirection="column">
+								<Text bold color="cyan">
+									Query Plan Progress:
+								</Text>
+								{props.queryPlan.map((question, index) => {
+									const isAnswered =
+										props.reflection.answeredQuestions.includes(index);
+									return (
+										<Text
+											key={`question-${index}-${question.slice(0, 20)}`}
+											color={isAnswered ? 'green' : 'red'}
+										>
+											{isAnswered ? '✓' : '⚠'} {question}
 										</Text>
-									))}
-								</Box>
-							)}
+									);
+								})}
+							</Box>
+						)}
 
-						{props.reflection.unansweredQuestions &&
-							props.reflection.unansweredQuestions.length > 0 && (
-								<Box marginBottom={1} flexDirection="column">
-									<Text bold color="yellow">
-										Questions Still Needed:
-									</Text>
-									{props.reflection.unansweredQuestions.map((questionIndex) => (
-										<Text key={questionIndex} color="yellow">
-											•{' '}
-											{props.queryPlan?.[questionIndex] ??
-												`Question ${questionIndex}`}
-										</Text>
-									))}
-								</Box>
-							)}
-
+						{/* Relevant Sources */}
 						{props.reflection.relevantSummaryIds &&
 							props.reflection.relevantSummaryIds.length > 0 && (
 								<Box marginBottom={1} flexDirection="column">
 									<Text bold color="cyan">
-										Relevant Sources Identified:
+										Relevant Sources:
 									</Text>
-									<Text color="gray">
-										Found {props.reflection.relevantSummaryIds.length} unique,
-										non-duplicate sources with relevant information
+									<Text color="white">
+										Found {props.reflection.relevantSummaryIds.length} unique
+										sources with relevant information
 									</Text>
 								</Box>
 							)}
 
-						{!props.reflection.isSufficient &&
-							props.reflection.followUpQueries && (
-								<Box marginBottom={1} flexDirection="column">
-									<Text bold color="white">
-										Follow-up Queries Needed:
-									</Text>
-									{props.reflection.followUpQueries.map((query, index) => (
-										<Text key={query} color="cyan">
-											• {query}
-										</Text>
-									))}
-								</Box>
-							)}
-
-						{props.reflection.isSufficient && (
+						{/* Status */}
+						{props.reflection.isSufficient ? (
 							<Box flexDirection="column">
 								<Text color="green">
 									✓ Ready to generate comprehensive answer
+								</Text>
+							</Box>
+						) : (
+							<Box flexDirection="column">
+								<Text color="yellow">
+									⚠ Additional research needed - generating follow-up queries
 								</Text>
 							</Box>
 						)}

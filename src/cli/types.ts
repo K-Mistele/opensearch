@@ -1,4 +1,9 @@
-import type { Reflection, SearchQueryList, SearchResult } from '@baml-client';
+import type {
+	ExtractedFact,
+	Reflection,
+	SearchQueryList,
+	SearchResult,
+} from '@baml-client';
 
 export type InputStep = {
 	type: 'input';
@@ -30,6 +35,19 @@ export type ReflectionStep = {
 	};
 };
 
+export type SummarizationStep = {
+	type: 'summarization';
+} & (
+	| {
+			isExtracting: true;
+			relevantSourcesCount: number;
+	  }
+	| {
+			isExtracting: false;
+			extractedFacts: Array<ExtractedFact>;
+	  }
+);
+
 export type MaxStepsReachedStep = {
 	type: 'max-steps-reached';
 };
@@ -45,6 +63,7 @@ export type Step =
 	| SearchingStep
 	| SearchResultsStep
 	| ReflectionStep
+	| SummarizationStep
 	| MaxStepsReachedStep
 	| AnswerStep;
 

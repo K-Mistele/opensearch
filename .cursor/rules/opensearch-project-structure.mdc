@@ -1,0 +1,312 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# OpenSearch: AI-Powered Multi-Round Research Agent
+
+## Project Overview
+
+OpenSearch is an AI-powered research agent that conducts sophisticated multi-round web research by:
+1. **Generating optimized search queries** from user research topics
+2. **Executing web searches** via Exa API to gather information
+3. **Reflecting on results** to identify knowledge gaps and determine sufficiency  
+4. **Iteratively searching** with follow-up queries until comprehensive information is gathered
+5. **Synthesizing comprehensive answers** with proper citations and footnotes
+
+## Architecture Overview
+
+The project implements **two parallel architectures** for different use cases:
+
+### 1. CLI Application (`src/cli/`)
+- **Interactive terminal interface** using React + Ink
+- **Real-time progress visualization** for each research step
+- **Event-driven architecture** with EventEmitter for UI updates
+- **Direct BAML integration** for immediate AI function calls
+- **Entry point**: `bun run cli`
+
+### 2. Inngest Workflow (`src/inngest/`)
+- **Scalable background processing** using Inngest functions
+- **Real-time pub/sub** with channels for live updates
+- **Workflow orchestration** with step functions and retry policies
+- **Production-ready** with proper error handling and concurrency limits
+- **API integration ready** for web applications
+
+## Key Components & File Structure
+
+```
+opensearch/
+├── src/cli/                    # CLI Application
+│   ├── app.tsx                 # Main React component with UI orchestration
+│   ├── agent.ts                # Core agent logic with EventEmitter
+│   ├── components/             # UI Components
+│   │   ├── research-input.tsx  # User input interface
+│   │   ├── query-generation.tsx # Query generation display
+│   │   ├── search-results.tsx  # Search execution progress
+│   │   ├── reflection.tsx      # Analysis & knowledge gap display
+│   │   ├── final-answer.tsx    # Answer synthesis display
+│   │   └── markdown-renderer.tsx # Markdown rendering with citations
+│   ├── types.ts                # TypeScript types for workflow steps
+│   └── index.tsx               # CLI entry point
+├── src/inngest/                # Backend Workflow
+│   ├── functions/
+│   │   ├── deep-research.ts    # Main research orchestration function
+│   │   ├── execute-searches.ts # Web search execution with rate limiting
+│   │   └── index.ts            # Function exports
+│   ├── client.ts               # Inngest client configuration
+│   └── connection.ts           # Function registration
+├── baml_src/                   # AI Function Definitions
+│   ├── generate_query.baml     # Search query generation
+│   ├── reflect.baml            # Result analysis & gap identification
+│   ├── create_answer.baml      # Answer synthesis with citations
+│   ├── types.baml              # Structured data schemas
+│   ├── clients.baml            # LLM client configurations
+│   └── generators.baml         # Code generation settings
+├── baml_client/                # Auto-generated (DO NOT EDIT)
+│   └── [generated TypeScript files]
+└── src/utils.ts                # Shared utilities
+```
+
+## Research Workflow
+
+### Step-by-Step Process
+
+1. **Input Collection**
+   - User provides research topic
+   - Topic validation and preprocessing
+
+2. **Query Generation** (`GenerateQuery` BAML function)
+   - AI analyzes research topic
+   - Generates optimized search queries
+   - Creates **query plan**: specific questions that need answering
+   - Returns `SearchQueryList` with queries, rationale, and query plan
+
+3. **Web Search Execution**
+   - Parallel execution of search queries via Exa API
+   - Rate limiting (5 requests/second) and error handling
+   - Collection of search results with highlights and full text
+
+4. **Reflection Analysis** (`Reflect` BAML function)
+   - AI analyzes search results against query plan
+   - Tracks answered vs. unanswered questions
+   - Identifies relevant summaries (non-duplicate information)
+   - Determines if information is sufficient
+   - If insufficient: generates targeted follow-up queries
+
+5. **Iteration Logic**
+   - If `isSufficient = false`: execute follow-up queries (repeat from step 3)
+   - If `isSufficient = true` OR max rounds reached: proceed to answer generation
+   - Progress tracking with round numbers and question completion
+
+6. **Answer Synthesis** (`CreateAnswer` BAML function)
+   - AI synthesizes comprehensive answer from relevant summaries
+   - Markdown formatting with proper structure
+   - Automatic footnote generation with source citations
+   - Confidence indicators and knowledge gap acknowledgments
+
+## BAML Integration Details
+
+### Core BAML Functions
+
+#### `GenerateQuery(args: GenerateQueryArgs) -> SearchQueryList`
+- **Purpose**: Transform research topic into search queries + structured plan
+- **Model**: Gemini 2.5 Flash (fast, cost-effective)
+- **Output**: Search queries, rationale, and comprehensive question plan
+- **Key Features**: SMART question criteria, current date awareness
+
+#### `Reflect(summaries, topic, date, queryPlan, answered, unanswered, round, maxRounds) -> Reflection`
+- **Purpose**: Analyze search results and determine research completeness
+- **Model**: Gemini 2.5 Pro (advanced reasoning)
+- **Logic**: Conservative early rounds, decisive final rounds
+- **Output**: Sufficiency assessment, knowledge gaps, follow-up queries
+- **Key Features**: Question tracking, relevant summary identification
+
+#### `CreateAnswer(date, topic, summaries) -> string`
+- **Purpose**: Synthesize comprehensive research answer
+- **Model**: Gemini 2.5 Pro (high-quality generation)
+- **Output**: Markdown-formatted answer with citations
+- **Key Features**: Footnote system, confidence indicators, source attribution
+
+### Data Structures (baml_src/types.baml)
+
+```typescript
+// Core workflow types
+SearchQueryList: { queryPlan: string[], query: string[], rationale: string }
+Reflection: { 
+  isSufficient: bool, 
+  answeredQuestions: int[], 
+  unansweredQuestions: int[],
+  knowledgeGap?: string,
+  followUpQueries?: string[],
+  relevantSummaryIds: string[]
+}
+SearchResult: { url, id, title, highlights, text, highlightScores }
+```
+
+## CLI Application Architecture
+
+### Event-Driven Flow (`src/cli/agent.ts` + `app.tsx`)
+
+```typescript
+// Main workflow steps
+type Step = 
+  | 'input'                  // User input received
+  | 'queries-generated'      // Search queries created
+  | 'searching'              // Web searches in progress  
+  | 'search-results'         // Search results collected
+  | 'reflection-complete'    // Analysis finished
+  | 'max-steps-reached'      // Round limit reached
+  | 'answer'                 // Final answer ready
+```
+
+**Key Features:**
+- **Real-time UI updates** via EventEmitter
+- **Progress visualization** with round tracking
+- **State management** for complex multi-step workflow
+- **Follow-up query handling** with visual distinction
+- **Error boundaries** and graceful degradation
+
+### UI Components
+
+- **ResearchInput**: Text input with submission handling
+- **QueryGeneration**: Shows initial + follow-up queries with rationale
+- **SearchResults**: Real-time search progress with query status
+- **ReflectionStep**: Analysis results with question progress tracking
+- **FinalAnswer**: Answer synthesis with source count
+- **MarkdownRenderer**: Citation rendering with link handling
+
+## Inngest Workflow Architecture
+
+### Function Structure (`src/inngest/functions/deep-research.ts`)
+
+```typescript
+// Main orchestration function
+deepResearch = inngest.createFunction(
+  { 
+    id: 'deep-research',
+    concurrency: { limit: 20 }
+  },
+  async ({ event, step, logger, publish }) => {
+    // 1. Generate initial queries
+    // 2. Execute searches in parallel
+    // 3. Reflect on results
+    // 4. Generate follow-ups or final answer
+    // 5. Publish real-time updates
+  }
+)
+```
+
+**Key Features:**
+- **Real-time channels** for live updates
+- **Step functions** with automatic retries
+- **Concurrent execution** with rate limiting
+- **Error handling** with NonRetriableError
+- **Logging** throughout workflow
+
+### Real-time Channels
+
+```typescript
+resultsChannel(uuid)
+  .addTopic('initialQueries', SearchQueryList)
+  .addTopic('webSearchResults', SearchResult[])
+  .addTopic('reflection', Reflection)
+  .addTopic('finalAnswer', string)
+```
+
+## Key Utilities (`src/utils.ts`)
+
+### Citation System
+- **processFootnotes()**: Converts random IDs to numbered footnotes
+- **insertCitationMarkers()**: Adds citation links to text
+- **getCitations()**: Extracts citations from Gemini responses
+
+### Helper Functions
+- **nanoid()**: Generate unique IDs for search results
+- **requireEnvironment()**: Environment variable validation
+
+## Configuration & Environment
+
+### Required Environment Variables
+```bash
+EXA_API_KEY=           # Exa search API key
+GOOGLE_API_KEY=        # Google AI (Gemini) API key
+ANTHROPIC_API_KEY=     # Anthropic (Claude) API key (optional)
+OPENAI_API_KEY=        # OpenAI API key (optional)
+INNGEST_BASE_URL=      # Inngest endpoint (for workflow version)
+```
+
+### LLM Client Options (baml_src/clients.baml)
+- **Primary**: Google AI (Gemini 2.5 Pro/Flash)
+- **Fallback**: OpenAI GPT-4o, Anthropic Claude 3.5 Sonnet
+- **Retry policies**: Exponential backoff, constant delay
+
+## Testing Strategy
+
+### Integration Tests
+- **Manual testing script**: `scripts/test-follow-up-queries.ts`
+- **BAML function tests**: `test/generate-query.test.ts`
+- **Real API integration**: Uses actual Exa + BAML calls
+
+### Test Coverage
+- Follow-up query generation and execution
+- Multi-round workflow progression
+- Question tracking and completion
+- Citation processing and footnote generation
+
+## Usage Examples
+
+### CLI Usage
+```bash
+bun run cli                    # Start interactive CLI
+bun run dev                    # Development mode with watching
+bun test                       # Run all tests
+bun test test/specific.test.ts # Run specific test
+```
+
+### Complex Research Example
+```
+Topic: "Compare fintech vs healthtech startup funding in 2024"
+
+Round 1: General funding queries
+├── Reflection: Missing healthtech-specific data
+Round 2: Healthtech-focused follow-up queries  
+├── Reflection: Missing comparative analysis
+Round 3: Comparative analysis queries
+└── Final Answer: Comprehensive comparison with metrics
+```
+
+## Production Considerations
+
+### Rate Limiting
+- **Exa API**: 5 requests/second (handled automatically)
+- **LLM APIs**: Retry policies with exponential backoff
+- **Concurrency**: Limited to 20 concurrent workflows
+
+### Error Handling
+- **Network failures**: Automatic retries with backoff
+- **API limits**: Graceful degradation and queuing
+- **Malformed responses**: Validation and fallbacks
+- **Max rounds**: Prevents infinite loops
+
+### Monitoring
+- **Inngest dashboard**: Workflow execution monitoring
+- **Step-by-step logging**: Detailed execution traces
+- **Real-time channels**: Live progress updates
+
+## Development Workflow
+
+### Code Organization
+- **CLI logic**: Event-driven with React components
+- **Backend logic**: Step functions with proper error handling  
+- **BAML functions**: Declarative AI function definitions
+- **Shared utilities**: Citation processing and helpers
+- **Type safety**: Strict TypeScript throughout
+
+### Key Design Principles
+- **Iterative research**: Multi-round approach mimics human research
+- **Conservative early, decisive late**: Reflection strategy adapts by round
+- **Source attribution**: Proper citations with footnotes
+- **Real-time feedback**: Progress visibility throughout process
+- **Graceful degradation**: Handles API failures and edge cases
+
+This architecture provides both immediate interactive research (CLI) and scalable background processing (Inngest) while maintaining consistent AI-powered research quality through BAML function integration.
