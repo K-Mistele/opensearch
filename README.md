@@ -45,31 +45,30 @@ OpenSearch implements **two parallel architectures** for different use cases:
 
 ## 📋 Research Workflow
 
-```mermaid
-flowchart TD
-    Start([User Input: Research Topic]) --> InitQuery[Generate Initial Queries<br/>📝 GenerateQuery BAML Function<br/>- Create search queries<br/>- Generate query plan<br/>- Set research questions]
+```mermaidflowchart TD
+    Start([User Input: Research Topic]) --> InitQuery[**Generate Initial Queries**<br/>📝 GenerateQuery BAML Function<br/>- Create search queries<br/>- Generate query plan<br/>- Set research questions]
     
-    InitQuery --> InitState[Initialize Agent State<br/>🔄 Round 1 of Max 10<br/>- Empty knowledge gap history<br/>- Track answered/unanswered questions<br/>- Initialize extracted facts array]
+    InitQuery --> InitState[**Initialize Agent State**<br/>🔄 Round 1 of Max 10<br/>- Empty knowledge gap history<br/>- Track answered/unanswered questions<br/>- Initialize extracted facts array]
+    InitState --> SearchExec[**Execute Web Searches**<br/>🔍 Parallel Exa API Calls<br/>- Rate limited at 5 RPS<br/>- Full text and highlights<br/>- Generate unique IDs]
+
     
-    InitState --> SearchExec[Execute Web Searches<br/>🔍 Parallel Exa API Calls<br/>- Rate limited (5 req/sec)<br/>- Full text + highlights<br/>- Generate unique IDs]
-    
-    SearchExec --> Reflect[Reflection Analysis<br/>🧠 Reflect BAML Function<br/>- Gap closure assessment<br/>- Question progress tracking<br/>- Identify relevant sources<br/>- Overall sufficiency check]
+    SearchExec --> Reflect[**Reflection Analysis**<br/>🧠 Reflect BAML Function<br/>- Gap closure assessment<br/>- Question progress tracking<br/>- Identify relevant sources<br/>- Overall sufficiency check]
     
     Reflect --> CheckSufficient{Research<br/>Sufficient?}
     
     CheckSufficient -->|Yes| AnswerPath[Generate Final Answer]
     CheckSufficient -->|No| ConcurrentPhase[Concurrent Processing Phase]
     
-    ConcurrentPhase --> GapAnalysis[Knowledge Gap Analysis<br/>🎯 AnalyzeKnowledgeGaps BAML<br/>- Review gap history<br/>- Apply abandonment criteria<br/>- Select next gap to research<br/>- Update gap statuses]
+    ConcurrentPhase --> GapAnalysis[**Knowledge Gap Analysis**<br/>🎯 AnalyzeKnowledgeGaps BAML<br/>- Review gap history<br/>- Apply abandonment criteria<br/>- Select next gap to research<br/>- Update gap statuses]
     
-    ConcurrentPhase --> FactExtract[Fact Extraction<br/>📊 ExtractRelevantFacts BAML<br/>- Process relevant sources only<br/>- Extract concise facts<br/>- Maintain source attribution<br/>- Reduce context length]
+    ConcurrentPhase --> FactExtract[**Fact Extraction**<br/>📊 ExtractRelevantFacts BAML<br/>- Process relevant sources only<br/>- Extract concise facts<br/>- Maintain source attribution<br/>- Reduce context length]
     
     GapAnalysis --> ShouldContinue{Should Continue<br/>Research?}
     ShouldContinue -->|No - All gaps<br/>resolved/abandoned| AnswerPath
     
-    ShouldContinue -->|Yes - Active gaps<br/>worth pursuing| FollowUpGen[Generate Follow-up Queries<br/>🔄 GenerateFollowUpQueries BAML<br/>- Target specific knowledge gap<br/>- Ensure query diversity<br/>- Avoid previous failed attempts<br/>- Strategic query angles]
+    ShouldContinue -->|Yes - Active gaps<br/>worth pursuing| FollowUpGen[**Generate Follow-up Queries**<br/>🔄 GenerateFollowUpQueries BAML<br/>- Target specific knowledge gap<br/>- Ensure query diversity<br/>- Avoid previous failed attempts<br/>- Strategic query angles]
     
-    FollowUpGen --> UpdateState[Update Agent State<br/>📈 Increment Round Counter<br/>- Update gap history<br/>- Set current gap index<br/>- Track query attempts<br/>- Add extracted facts]
+    FollowUpGen --> UpdateState[**Update Agent State**<br/>📈 Increment Round Counter<br/>- Update gap history<br/>- Set current gap index<br/>- Track query attempts<br/>- Add extracted facts]
     
     UpdateState --> MaxRounds{Max Rounds<br/>Reached?}
     MaxRounds -->|Yes| ForceAnswer[Force Answer Generation<br/>⚠️ Max rounds reached<br/>Generate with available info]
