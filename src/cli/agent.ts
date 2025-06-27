@@ -1,5 +1,5 @@
 import { exa } from '@/inngest/functions/execute-searches';
-import { nanoid, processFootnotes } from '@/utils';
+import { nanoid, processFootnotes, sanitizeForFilename } from '@/utils';
 import {
 	type AttemptedKnowledgeGap,
 	type ExtractedFact,
@@ -9,6 +9,7 @@ import {
 	b,
 } from '@baml-client';
 import { EventEmitter } from 'node:events';
+import { writeFileSync } from 'node:fs';
 import type {
 	AgentState,
 	AnswerStep,
@@ -150,6 +151,7 @@ export async function executeAgent({
 				type: 'answer',
 				data: state.answer,
 			} satisfies AnswerStep);
+			saveReport(researchTopic, state.answer);
 			return state.answer;
 		}
 
@@ -303,6 +305,7 @@ export async function executeAgent({
 				type: 'answer',
 				data: state.answer,
 			} satisfies AnswerStep);
+			saveReport(researchTopic, state.answer);
 			return state.answer;
 		}
 
@@ -354,4 +357,16 @@ function getCurrentGapPreviousQueries(
 		(g: AttemptedKnowledgeGap) => g.description === targetGap,
 	);
 	return gap?.previousQueries || [];
+}
+
+// Helper function to save the research report to a file
+function saveReport(researchTopic: string, answer: string): void {
+	try {
+		const sanitizedTopic = sanitizeForFilename(researchTopic);
+		const filename = `report-${sanitizedTopic}.md`;
+		writeFileSync(filename, answer, 'utf8');
+		console.log(`Research report saved to: ${filename}`);
+	} catch (error) {
+		console.error('Failed to save research report:', error);
+	}
 }
