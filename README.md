@@ -111,8 +111,6 @@ Create a `.env` file with the required API keys:
 ```bash
 EXA_API_KEY=your_exa_api_key              # Exa search API key
 GOOGLE_API_KEY=your_google_api_key        # Google AI (Gemini) API key
-ANTHROPIC_API_KEY=your_anthropic_key      # Anthropic (Claude) API key (optional)
-OPENAI_API_KEY=your_openai_key            # OpenAI API key (optional)
 INNGEST_BASE_URL=your_inngest_url         # Inngest endpoint (for workflow version)
 ```
 
@@ -146,43 +144,6 @@ bun run cli --max-rounds 15
 bun run cli --help
 ```
 
-### Development Commands
-
-```bash
-# Development mode with hot reloading
-bun run dev
-
-# Run tests
-bun test
-
-# Run specific test
-bun test test/generate-query.test.ts
-
-# Format and lint code
-bunx biome format .
-bunx biome lint .
-```
-
-### Example Research Session
-
-```
-Topic: "Compare fintech vs healthtech startup funding in 2024"
-
-Round 1: General funding queries
-├── 📝 Generated: "fintech startup funding 2024", "healthtech funding trends 2024"
-├── 🔍 Executed 4 searches, found 12 relevant sources
-└── 🧠 Reflection: Missing healthtech-specific data
-
-Round 2: Healthtech-focused follow-up queries  
-├── 📝 Generated: "digital health startup investments 2024", "biotech venture capital"
-├── 🔍 Executed 3 searches, found 8 additional sources
-└── 🧠 Reflection: Missing comparative analysis
-
-Round 3: Comparative analysis queries
-├── 📝 Generated: "fintech vs healthtech VC funding comparison 2024"
-├── 🔍 Executed 2 searches, found 5 comparative sources
-└── 📋 Final Answer: Comprehensive comparison with metrics and footnotes
-```
 
 ## 🧠 BAML Integration
 
@@ -334,3 +295,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Powered by [Exa](https://exa.ai/) for intelligent web search
 - UI built with [Ink](https://github.com/vadimdemedes/ink) terminal components
 - Orchestrated with [Inngest](https://www.inngest.com/) workflows 
+- Design inspired by [12 Factor Agents](https://github.com/humanlayer/12-factor-agents)
