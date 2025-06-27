@@ -8,9 +8,11 @@ const NewLink = (props: { href: string; children: ReactNode }) => {
 	const enableFallback = href.includes('http');
 
 	return (
-		<Link url={href} fallback={enableFallback}>
-			<Text color="blue">{children}</Text>
-		</Link>
+		<Text color="blue">
+			<Link url={href} fallback={enableFallback}>
+				{children}
+			</Link>
+		</Text>
 	);
 };
 

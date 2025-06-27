@@ -11,7 +11,11 @@ export const App: FC = () => {
 			<Gradient name="atlas">
 				<BigText text="OpenSearch" />
 			</Gradient>
-			<MarkdownRenderer content={'[^1,2]\n\n[^1]: test\n[^2]: test2'} />
+			<MarkdownRenderer
+				content={
+					'[^1,2]\n\n[^1]: test\n[^2]: test2 [testtest](https://www.google.com)'
+				}
+			/>
 		</Box>
 	);
 };
