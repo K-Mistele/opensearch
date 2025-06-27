@@ -45,7 +45,8 @@ OpenSearch implements **two parallel architectures** for different use cases:
 
 ## 📋 Research Workflow
 
-```mermaidflowchart TD
+```mermaid
+flowchart TD
     Start([User Input: Research Topic]) --> InitQuery[**Generate Initial Queries**<br/>📝 GenerateQuery BAML Function<br/>- Create search queries<br/>- Generate query plan<br/>- Set research questions]
     
     InitQuery --> InitState[**Initialize Agent State**<br/>🔄 Round 1 of Max 10<br/>- Empty knowledge gap history<br/>- Track answered/unanswered questions<br/>- Initialize extracted facts array]
