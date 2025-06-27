@@ -358,3 +358,26 @@ export function processFootnotes(
 
 	return processedText;
 }
+
+/**
+ * Sanitizes a research topic or query string to make it safe for use as a filename.
+ * Removes or replaces unsafe characters and limits length.
+ *
+ * @param query - The research topic/query string to sanitize
+ * @param maxLength - Maximum length for the filename (default: 100)
+ * @returns A sanitized string safe for use in filenames
+ */
+export function sanitizeForFilename(query: string, maxLength = 100): string {
+	return (
+		query
+			// Replace unsafe filename characters with safe alternatives
+			.replace(/[<>:"/\\|?*]/g, '-') // Replace unsafe chars with hyphens
+			.replace(/\s+/g, '-') // Replace spaces with hyphens
+			.replace(/\.+/g, '-') // Replace periods with hyphens (avoid issues with extensions)
+			.replace(/-+/g, '-') // Replace multiple consecutive hyphens with single hyphen
+			.replace(/^-|-$/g, '') // Remove leading and trailing hyphens
+			.toLowerCase() // Convert to lowercase for consistency
+			.slice(0, maxLength) // Limit length
+			.replace(/-$/, '')
+	); // Remove trailing hyphen if created by slice
+}
