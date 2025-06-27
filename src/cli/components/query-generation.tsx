@@ -5,10 +5,11 @@ import type React from 'react';
 
 type QueryGenerationProps = {
 	researchTopic: string;
+	roundNumber?: number;
 } & (
 	| {
 			isFollowUp: true;
-			previousReflection: Reflection;
+			previousReflection?: Reflection;
 	  }
 	| {
 			isFollowUp: false;
@@ -29,7 +30,12 @@ type QueryGenerationProps = {
 	);
 
 export const QueryGeneration: React.FC<QueryGenerationProps> = (props) => {
-	const { researchTopic, isFollowUp = false, isGenerating } = props;
+	const {
+		researchTopic,
+		isFollowUp = false,
+		isGenerating,
+		roundNumber,
+	} = props;
 
 	const genWord = props.isGenerating ? 'Generating' : 'Generated';
 
@@ -45,8 +51,8 @@ export const QueryGeneration: React.FC<QueryGenerationProps> = (props) => {
 			<Box marginBottom={1}>
 				<Text bold color="blue">
 					{isFollowUp
-						? '🔄 Follow-Up Query Generation'
-						: '🤖 Search Query Generation'}
+						? `🔄 Follow-Up Query Generation${roundNumber ? ` (Round ${roundNumber})` : ''}`
+						: `🤖 Search Query Generation${roundNumber ? ` (Round ${roundNumber})` : ''}`}
 				</Text>
 			</Box>
 

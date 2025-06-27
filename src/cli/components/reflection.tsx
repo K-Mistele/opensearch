@@ -6,6 +6,8 @@ import type React from 'react';
 type ReflectionStepProps = {
 	researchTopic: string;
 	searchResultsLength: number;
+	queryPlan?: string[];
+	roundNumber?: number;
 } & (
 	| {
 			isReflecting: true;
@@ -17,6 +19,13 @@ type ReflectionStepProps = {
 );
 
 export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
+	const totalQuestions = props.queryPlan?.length || 0;
+	const answeredCount = props.isReflecting
+		? 0
+		: props.reflection.answeredQuestions.length;
+	const progressPercentage =
+		totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+
 	return (
 		<Box
 			flexDirection="column"
@@ -29,8 +38,18 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 			<Box marginBottom={1}>
 				<Text bold color="magenta">
 					🤔 Research Analysis
+					{props.roundNumber ? ` (Round ${props.roundNumber})` : ''}
 				</Text>
 			</Box>
+
+			{totalQuestions > 0 && (
+				<Box marginBottom={1}>
+					<Text color="gray">
+						Progress: {answeredCount}/{totalQuestions} questions answered (
+						{progressPercentage}%)
+					</Text>
+				</Box>
+			)}
 
 			<Box marginBottom={1}>
 				<Text color="gray">
@@ -76,9 +95,11 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 									<Text bold color="green">
 										Questions Answered:
 									</Text>
-									{props.reflection.answeredQuestions.map((question) => (
-										<Text key={question} color="green">
-											✓ {question}
+									{props.reflection.answeredQuestions.map((questionIndex) => (
+										<Text key={questionIndex} color="green">
+											✓{' '}
+											{props.queryPlan?.[questionIndex] ??
+												`Question ${questionIndex}`}
 										</Text>
 									))}
 								</Box>
@@ -90,9 +111,11 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 									<Text bold color="yellow">
 										Questions Still Needed:
 									</Text>
-									{props.reflection.unansweredQuestions.map((question) => (
-										<Text key={question} color="yellow">
-											• {question}
+									{props.reflection.unansweredQuestions.map((questionIndex) => (
+										<Text key={questionIndex} color="yellow">
+											•{' '}
+											{props.queryPlan?.[questionIndex] ??
+												`Question ${questionIndex}`}
 										</Text>
 									))}
 								</Box>

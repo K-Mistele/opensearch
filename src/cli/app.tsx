@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink';
 import BigText from 'ink-big-text';
 import Gradient from 'ink-gradient';
+import Link from 'ink-link';
 import type { EventEmitter } from 'node:events';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -17,6 +18,25 @@ const App: React.FC = () => {
 	const emitter = useRef<EventEmitter>(eventEmitter);
 	const [researchTopic, setResearchTopic] = useState<string>('');
 	const [queryPlan, setQueryPlan] = useState<string[]>([]);
+	const [maxRounds] = useState<number>(10);
+
+	// Calculate current round based on completed reflections
+	const currentRound =
+		steps.filter((step) => step.type === 'reflection-complete').length + 1;
+	const isResearchActive =
+		researchTopic &&
+		!steps.some(
+			(step) => step.type === 'answer' || step.type === 'max-steps-reached',
+		);
+
+	// Helper function to calculate round number for a given step index
+	const getRoundNumber = (stepIndex: number): number => {
+		return (
+			steps
+				.slice(0, stepIndex + 1)
+				.filter((step) => step.type === 'reflection-complete').length + 1
+		);
+	};
 
 	useEffect(() => {
 		emitter.current.on('state-update', handleStateUpdate);
@@ -47,36 +67,94 @@ const App: React.FC = () => {
 		});
 	}, []);
 
-	const handleResearchTopicSubmit = useCallback((topic: string) => {
-		setResearchTopic(topic);
-		setQueryPlan([]);
-		executeAgent({ researchTopic: topic, maxRounds: 10 });
-	}, []);
+	const handleResearchTopicSubmit = useCallback(
+		(topic: string) => {
+			setResearchTopic(topic);
+			setQueryPlan([]);
+			executeAgent({ researchTopic: topic, maxRounds });
+		},
+		[maxRounds],
+	);
+
 	return (
 		<Box flexDirection="column" overflow="visible">
 			<Gradient name="atlas">
 				<BigText text="Open" />
 				<BigText text="Search" />
 			</Gradient>
+			<Text>
+				Created by Kyle Mistele (X:{' '}
+				<Link url="https://x.com/0xblacklight" fallback={false}>
+					@0xblacklight
+				</Link>
+				, GitHub:{' '}
+				<Link url="https://github.com/K-Mistele" fallback={false}>
+					@K-Mistele
+				</Link>
+				, blog:{' '}
+				<Link url="https://blacklight.sh" fallback={false}>
+					blacklight.sh
+				</Link>
+				)
+			</Text>
 			<ResearchInput onSubmit={handleResearchTopicSubmit} />
 			{steps.map((step, index) => {
+				const roundNumber = getRoundNumber(index);
+
 				if (step.type === 'input' && index === steps.length - 1) {
 					return (
 						<QueryGeneration
 							researchTopic={step.data}
 							isGenerating={true}
 							isFollowUp={false}
+							roundNumber={1}
 							key={`${step.type}-${index}`}
 						/>
 					);
 				}
 				if (step.type === 'queries-generated') {
+					// Determine if this is a follow-up based on previous steps
+					const isFollowUpQuery = steps
+						.slice(0, index)
+						.some(
+							(step) =>
+								step.type === 'reflection-complete' && !step.data.isSufficient,
+						);
+
+					if (isFollowUpQuery) {
+						// Find the previous reflection for follow-up context
+						const previousReflection = steps
+							.slice(0, index)
+							.findLast(
+								(step) =>
+									step.type === 'reflection-complete' &&
+									!step.data.isSufficient,
+							);
+
+						return (
+							<QueryGeneration
+								researchTopic={researchTopic}
+								isGenerating={false}
+								isFollowUp={true}
+								previousReflection={
+									previousReflection?.type === 'reflection-complete'
+										? previousReflection.data
+										: undefined
+								}
+								queries={step.data}
+								roundNumber={roundNumber}
+								key={`${step.type}-${index}`}
+							/>
+						);
+					}
+
 					return (
 						<QueryGeneration
 							researchTopic={researchTopic}
 							isGenerating={false}
 							isFollowUp={false}
 							queries={step.data}
+							roundNumber={roundNumber}
 							key={`${step.type}-${index}`}
 						/>
 					);
@@ -110,15 +188,17 @@ const App: React.FC = () => {
 							{!hasReflectionComplete && isLastStep && (
 								<ReflectionStep
 									researchTopic={researchTopic}
-									searchResultsLength={step.data.allSearchResults.length}
+									searchResultsLength={step.data.searchResults.length}
 									isReflecting={true}
-									key={`reflection-generating-${step.data.allSearchResults.length}`}
+									key={`reflection-generating-${step.data.searchResults.length}`}
+									queryPlan={queryPlan}
+									roundNumber={roundNumber}
 								/>
 							)}
 						</>
 					);
 				}
-				// TODO handle if there are follow up queries
+				// Follow-up queries are handled in the reflection-complete section below
 				if (
 					step.type === 'reflection-complete' &&
 					step.data.isSufficient &&
@@ -134,10 +214,12 @@ const App: React.FC = () => {
 								isReflecting={false}
 								searchResultsLength={
 									lastSearchResults?.type === 'search-results'
-										? lastSearchResults.data.allSearchResults.length
+										? lastSearchResults.data.searchResults.length
 										: 0
 								}
 								reflection={step.data}
+								queryPlan={queryPlan}
+								roundNumber={roundNumber}
 								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
 							/>
 							<FinalAnswer
@@ -158,10 +240,12 @@ const App: React.FC = () => {
 							isReflecting={false}
 							searchResultsLength={
 								lastSearchResults?.type === 'search-results'
-									? lastSearchResults.data.allSearchResults.length
+									? lastSearchResults.data.searchResults.length
 									: 0
 							}
 							reflection={step.data}
+							queryPlan={queryPlan}
+							roundNumber={roundNumber}
 							key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
 						/>
 					);
@@ -169,8 +253,9 @@ const App: React.FC = () => {
 
 				// Handle reflection insufficient but max steps reached
 				if (step.type === 'max-steps-reached') {
-					const lastSearchResults = steps.findLast(
-						(step) => step.type === 'search-results',
+					// For max steps reached, we need to get the relevant summaries count from the last reflection
+					const lastReflection = steps.findLast(
+						(step) => step.type === 'reflection-complete',
 					);
 					return (
 						<>
@@ -179,9 +264,9 @@ const App: React.FC = () => {
 								available information...
 							</Text>
 							<FinalAnswer
-								searchResultsLength={
-									lastSearchResults?.type === 'search-results'
-										? lastSearchResults.data.allSearchResults.length
+								relevantSummariesCount={
+									lastReflection?.type === 'reflection-complete'
+										? lastReflection.data.relevantSummariesCount
 										: 0
 								}
 								isGenerating={true}
@@ -203,10 +288,12 @@ const App: React.FC = () => {
 								isReflecting={false}
 								searchResultsLength={
 									lastSearchResults?.type === 'search-results'
-										? lastSearchResults.data.allSearchResults.length
+										? lastSearchResults.data.searchResults.length
 										: 0
 								}
 								reflection={step.data}
+								queryPlan={queryPlan}
+								roundNumber={roundNumber}
 								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
 							/>
 							{/* Show follow-up queries if they exist in the next step */}
@@ -217,6 +304,7 @@ const App: React.FC = () => {
 									isFollowUp={true}
 									previousReflection={step.data}
 									queries={nextStep.data}
+									roundNumber={getRoundNumber(index + 1)}
 									key={`follow-up-queries-${nextStep.data.query.length}`}
 								/>
 							)}
@@ -225,11 +313,16 @@ const App: React.FC = () => {
 				}
 
 				if (step.type === 'answer') {
+					// For final answer, get the relevant summaries count from the last reflection
+					const lastReflection = steps.findLast(
+						(step) => step.type === 'reflection-complete',
+					);
 					return (
 						<FinalAnswer
-							searchResultsLength={
-								steps.findLast((step) => step.type === 'search-results')!.data
-									.allSearchResults.length
+							relevantSummariesCount={
+								lastReflection?.type === 'reflection-complete'
+									? lastReflection.data.relevantSummariesCount
+									: 0
 							}
 							isGenerating={false}
 							answer={step.data}

@@ -5,12 +5,16 @@ function Reflect(
     queryPlan: string[],
     completedQuestions: int[],
     unansweredQuestions: int[],
+    currentRound: int,
+    maxRounds: int,
 ) -> Reflection {
     client "google-ai/gemini-2.5-pro"
     prompt #"
     You are an expert research assistant analyzing summaries about "{{research_topic}}".
 
     The current date is {{current_date}}.
+    
+    Research Progress: This is round {{currentRound}} of {{maxRounds}} maximum rounds.
 
     Query Plan:
     The following questions were previously identified as needing to be answered to fully satisfy the research topic:
@@ -22,8 +26,20 @@ function Reflect(
     - Use the query plan to evaluate if the information provided in the summaries below is sufficient to answer the user's question; focusing on the unanswered parts of the query plan
     - For each unanswered question in the query plan, determine if it has been sufficiently answered by the search results from this round
     - Identify which questions from the plan have been answered and which still need addressing
-    - If all questions in the query plan have been sufficiently answered, set isSufficient to true
-    - If some questions remain unanswered, set isSufficient to false and generate follow-up queries to address the remaining questions
+    - ONLY set isSufficient to true if ALL questions in the query plan have been comprehensively answered with specific, concrete evidence
+    - Be conservative: if there's any doubt about whether a question has been fully answered, mark it as unanswered
+    - If some questions remain unanswered OR if the answers lack specific details, set isSufficient to false and generate follow-up queries to address the remaining questions
+    - Require concrete facts, numbers, dates, and specific details - not just general information - to consider a question answered
+    
+    Round-Specific Guidance:
+    {% if currentRound <= 3 %}
+    - EARLY RESEARCH PHASE: Be extra conservative. It's very unlikely that complex research questions can be fully answered in just {{currentRound}} rounds
+    - Only mark research as sufficient if you have overwhelming evidence for ALL questions
+    - Prefer to continue researching rather than conclude prematurely
+    {% elif currentRound >= maxRounds - 1 %}
+    - FINAL RESEARCH PHASE: You're near the end of available rounds. Be more decisive about what constitutes sufficient information
+    - Focus on whether you have enough information to provide a meaningful answer, even if not perfect
+    {% endif %}
 
     CRITICAL - Relevant Summary Selection for This Round:
     - You are analyzing summaries from THIS ROUND of searches only

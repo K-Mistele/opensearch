@@ -64,6 +64,9 @@ export const deepResearch = inngest.createFunction(
 
 		logger.info(`Executing ${initialQueryInformation.query.length} queries`);
 		let queries: Array<string> = initialQueryInformation.query;
+		const originalMaxRounds = maxRounds; // Keep track of original max rounds
+		let currentRound = 1; // Track current round number
+
 		while (maxRounds > 0) {
 			// Execute the web searches
 
@@ -82,10 +85,27 @@ export const deepResearch = inngest.createFunction(
 
 			// Save for later with IDs
 			for (const result of searchResults) {
-				console.log('result', result);
 				result.id = nanoid(4);
-				console.log(`Adding search result with ID: ${result.id}`);
+				logger.info(
+					`Search result ${result.id}: ${result.title} (${result.url})`,
+				);
+				logger.info(`  Text length: ${result.text?.length || 0} chars`);
+				logger.info(
+					`  Highlights: ${result.highlights?.length || 0} highlights`,
+				);
 				allSearchResults.push(result);
+			}
+
+			// Debug: Check if we have meaningful search results
+			const meaningfulResults = searchResults.filter(
+				(r) => r.text && r.text.length > 100,
+			);
+			logger.info(
+				`Got ${meaningfulResults.length} meaningful search results (with >100 chars text)`,
+			);
+
+			if (searchResults.length === 0) {
+				logger.warn('No search results returned from searches!');
 			}
 
 			// Publish the results
@@ -121,6 +141,16 @@ export const deepResearch = inngest.createFunction(
 
 			// Otherwise, reflect on the results. force a retry if it's non-sufficient and has no follow-up queries
 			logger.info(`Reflecting on ${searchResults.length} search results...`);
+			logger.info(
+				`Current answered questions: ${JSON.stringify(answeredQuestions)}`,
+			);
+			logger.info(
+				`Current unanswered questions: ${JSON.stringify(unansweredQuestions)}`,
+			);
+			logger.info(
+				`Query plan: ${JSON.stringify(initialQueryInformation.queryPlan)}`,
+			);
+
 			const reflection: Reflection = await step.run(
 				'reflect-on-results',
 				async () => {
@@ -131,10 +161,25 @@ export const deepResearch = inngest.createFunction(
 						initialQueryInformation.queryPlan,
 						answeredQuestions,
 						unansweredQuestions,
+						currentRound,
+						originalMaxRounds,
 					);
 					if (!reflection) {
 						throw new NonRetriableError('Reflection is null');
 					}
+
+					// Debug logging for reflection results
+					logger.info(
+						`Reflection result: ${JSON.stringify({
+							isSufficient: reflection.isSufficient,
+							answeredQuestions: reflection.answeredQuestions,
+							unansweredQuestions: reflection.unansweredQuestions,
+							knowledgeGap: reflection.knowledgeGap,
+							followUpQueriesCount: reflection.followUpQueries?.length || 0,
+							relevantSummaryIdsCount: reflection.relevantSummaryIds.length,
+						})}`,
+					);
+
 					if (!reflection.isSufficient && !reflection.followUpQueries) {
 						throw new Error(
 							'Reflection is not sufficient and has no follow-up queries',
@@ -167,6 +212,16 @@ export const deepResearch = inngest.createFunction(
 				logger.info(
 					'Reflection indicated search data is sufficient; generating answer...',
 				);
+				logger.info(
+					`Final answered questions: ${JSON.stringify(reflection.answeredQuestions)}`,
+				);
+				logger.info(
+					`Final unanswered questions: ${JSON.stringify(reflection.unansweredQuestions)}`,
+				);
+				logger.info(
+					`Using ${relevantSummaries.length > 0 ? relevantSummaries.length : allSearchResults.length} summaries for answer generation`,
+				);
+
 				const answer = await step.run(
 					'generate-answer-sufficient',
 					async () => {
@@ -202,6 +257,9 @@ export const deepResearch = inngest.createFunction(
 			logger.info(
 				`Reflection indicated more data needed; trying ${reflection.followUpQueries.length} follow-up queries...`,
 			);
+
+			// Increment round counter for next iteration
+			currentRound += 1;
 		}
 	},
 );

@@ -31,6 +31,7 @@ function CreateAnswer(
         Very important instructions:
         - if the information is not sufficient, you should indicate to the user that you don't have enough information to answer the question.
         - make sure to indicate how confident you are in the answer, and why.
+        - Never use tables in your answer - you many use newlines, bold, italics, lists, links, and footnotes. 
 
         User Context:
         - {{research_topic}}

@@ -83,7 +83,12 @@ export const MarkdownRenderer = memo(
 							props: {},
 						},
 						br: {
-							component: Newline,
+							component: () => (
+								<Text>
+									<Newline />
+									<Newline />
+								</Text>
+							),
 						},
 						h1: {
 							component: Text,

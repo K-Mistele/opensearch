@@ -137,7 +137,7 @@ export class BamlSyncClient {
   }
   
   Reflect(
-      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],
+      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentRound: number,maxRounds: number,
       __baml_options__?: BamlCallOptions
   ): Reflection {
     try {
@@ -147,7 +147,7 @@ export class BamlSyncClient {
       const raw = this.runtime.callFunctionSync(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentRound": currentRound,"maxRounds": maxRounds
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),

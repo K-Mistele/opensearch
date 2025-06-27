@@ -28,8 +28,9 @@ function GenerateQuery(
         - If the query is complicated or multi-part (e.g. about multiple different people, businesses, entities or topics), break it down into multiple queries.
 
         Instructions for Query Plan:
-        - Create a comprehensive list of specific questions that need to be answered to fully satisfy the user's research topic
+        - Create a comprehensive list of specific questions that need to be answered to fully satisfy the user's research topic by deconstructing the research topic into smaller, more specific questions
         - These questions should be detailed and specific, covering all aspects of the research topic
+        - Questions should not include information which you already know the answer to, such as common knowledge.
         - The questions should be answerable through web research and should guide the evaluation of whether research is complete
         - Think about what a complete answer to the research topic would need to include, then break that down into specific questions
         - Questions should be comprehensive enough that if all are answered, the research topic is fully addressed
@@ -39,7 +40,6 @@ function GenerateQuery(
         <research_topic>
         {{ args.research_topic}}
         </research_topic>
-
 
         <output_format>
         {{ ctx.output_format }}
