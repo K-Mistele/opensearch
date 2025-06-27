@@ -16,12 +16,15 @@ import { ResearchInput } from './components/research-input.tsx';
 import { SearchResults } from './components/search-results.tsx';
 import type { Step } from './types';
 
-const App: React.FC = () => {
+interface AppProps {
+	maxRounds: number;
+}
+
+const App: React.FC<AppProps> = ({ maxRounds }) => {
 	const [steps, setSteps] = useState<Array<Step>>([]);
 	const emitter = useRef<EventEmitter>(eventEmitter);
 	const [researchTopic, setResearchTopic] = useState<string>('');
 	const [queryPlan, setQueryPlan] = useState<string[]>([]);
-	const [maxRounds] = useState<number>(10);
 
 	// Calculate current round based on completed reflections
 	const currentRound =

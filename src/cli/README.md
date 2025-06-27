@@ -1,6 +1,12 @@
-# Deep Research Agent CLI
 
-An interactive command-line interface for the deep research agent workflow built with [Ink](https://github.com/vadimdemedes/ink).
+  ██████╗  ██████╗  ███████╗ ███╗   ██╗ ███████╗ ███████╗  █████╗  ██████╗   ██████╗ ██╗  ██╗
+ ██╔═══██╗ ██╔══██╗ ██╔════╝ ████╗  ██║ ██╔════╝ ██╔════╝ ██╔══██╗ ██╔══██╗ ██╔════╝ ██║  ██║
+ ██║   ██║ ██████╔╝ █████╗   ██╔██╗ ██║ ███████╗ █████╗   ███████║ ██████╔╝ ██║      ███████║
+ ██║   ██║ ██╔═══╝  ██╔══╝   ██║╚██╗██║ ╚════██║ ██╔══╝   ██╔══██║ ██╔══██╗ ██║      ██╔══██║
+ ╚██████╔╝ ██║      ███████╗ ██║ ╚████║ ███████║ ███████╗ ██║  ██║ ██║  ██║ ╚██████╗ ██║  ██║
+  ╚═════╝  ╚═╝      ╚══════╝ ╚═╝  ╚═══╝ ╚══════╝ ╚══════╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝  ╚═════╝ ╚═╝  ╚═╝
+
+An interactive command-line interface for the deep research agent workflow built with [Ink](https://github.com/vadimdemedes/ink) by [Kyle Mistele](blacklight.sh) [@0xblacklight](https://x.com/0xblacklight)
 
 ## Features
 
