@@ -22,9 +22,17 @@ import { DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME } from "./
 export default class TypeBuilder {
     private tb: _TypeBuilder;
     
+    AttemptedKnowledgeGap: ClassViewer<'AttemptedKnowledgeGap', "description" | "attemptCount" | "status" | "previousQueries" | "relatedQuestionIds" | "firstAttemptedRound" | "lastAttemptedRound">;
+    
     ExtractedFact: ClassViewer<'ExtractedFact', "sourceId" | "relevantFacts" | "summary">;
     
+    FollowUpQueryGeneration: ClassViewer<'FollowUpQueryGeneration', "queries" | "rationale" | "queryStrategy">;
+    
     GenerateQueryArgs: ClassViewer<'GenerateQueryArgs', "research_topic" | "current_date" | "number_queries">;
+    
+    KnowledgeGapAnalysis: ClassViewer<'KnowledgeGapAnalysis', "shouldContinueResearch" | "nextGapToResearch" | "gapStatus" | "reasoning" | "updatedGapHistory">;
+    
+    KnowledgeGapHistory: ClassViewer<'KnowledgeGapHistory', "gaps" | "currentGapIndex">;
     
     Message: ClassViewer<'Message', "role" | "content">;
     
@@ -32,7 +40,7 @@ export default class TypeBuilder {
     
     QueryGenerationState: ClassViewer<'QueryGenerationState', "search_query">;
     
-    Reflection: ClassViewer<'Reflection', "isSufficient" | "answeredQuestions" | "unansweredQuestions" | "knowledgeGap" | "followUpQueries" | "followupQueriesRationale" | "relevantSummaryIds">;
+    Reflection: ClassViewer<'Reflection', "isSufficient" | "answeredQuestions" | "unansweredQuestions" | "relevantSummaryIds" | "currentGapClosed" | "newGapsIdentified">;
     
     ReflectionState: ClassViewer<'ReflectionState', "is_sufficient" | "knowledge_gap" | "follow_up_queries" | "research_loop_count" | "number_of_ran_queries">;
     
@@ -49,7 +57,7 @@ export default class TypeBuilder {
     constructor() {
         this.tb = new _TypeBuilder({
           classes: new Set([
-            "ExtractedFact","GenerateQueryArgs","Message","Query","QueryGenerationState","Reflection","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","WebSearchState",
+            "AttemptedKnowledgeGap","ExtractedFact","FollowUpQueryGeneration","GenerateQueryArgs","KnowledgeGapAnalysis","KnowledgeGapHistory","Message","Query","QueryGenerationState","Reflection","ReflectionState","SearchQueryList","SearchResult","SearchStateOutput","WebSearchState",
           ]),
           enums: new Set([
             
@@ -57,12 +65,28 @@ export default class TypeBuilder {
           runtime: DO_NOT_USE_DIRECTLY_UNLESS_YOU_KNOW_WHAT_YOURE_DOING_RUNTIME
         });
         
+        this.AttemptedKnowledgeGap = this.tb.classViewer("AttemptedKnowledgeGap", [
+          "description","attemptCount","status","previousQueries","relatedQuestionIds","firstAttemptedRound","lastAttemptedRound",
+        ]);
+        
         this.ExtractedFact = this.tb.classViewer("ExtractedFact", [
           "sourceId","relevantFacts","summary",
         ]);
         
+        this.FollowUpQueryGeneration = this.tb.classViewer("FollowUpQueryGeneration", [
+          "queries","rationale","queryStrategy",
+        ]);
+        
         this.GenerateQueryArgs = this.tb.classViewer("GenerateQueryArgs", [
           "research_topic","current_date","number_queries",
+        ]);
+        
+        this.KnowledgeGapAnalysis = this.tb.classViewer("KnowledgeGapAnalysis", [
+          "shouldContinueResearch","nextGapToResearch","gapStatus","reasoning","updatedGapHistory",
+        ]);
+        
+        this.KnowledgeGapHistory = this.tb.classViewer("KnowledgeGapHistory", [
+          "gaps","currentGapIndex",
         ]);
         
         this.Message = this.tb.classViewer("Message", [
@@ -78,7 +102,7 @@ export default class TypeBuilder {
         ]);
         
         this.Reflection = this.tb.classViewer("Reflection", [
-          "isSufficient","answeredQuestions","unansweredQuestions","knowledgeGap","followUpQueries","followupQueriesRationale","relevantSummaryIds",
+          "isSufficient","answeredQuestions","unansweredQuestions","relevantSummaryIds","currentGapClosed","newGapsIdentified",
         ]);
         
         this.ReflectionState = this.tb.classViewer("ReflectionState", [

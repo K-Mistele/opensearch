@@ -8,6 +8,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { eventEmitter, executeAgent } from './agent';
 import { FactExtraction } from './components/fact-extraction.tsx';
 import { FinalAnswer } from './components/final-answer.tsx';
+import { FollowUpQueryGenerationComponent } from './components/followup-query-generation.tsx';
+import { KnowledgeGapAnalysisComponent } from './components/knowledge-gap-analysis.tsx';
 import { QueryGeneration } from './components/query-generation.tsx';
 import { ReflectionStep } from './components/reflection.tsx';
 import { ResearchInput } from './components/research-input.tsx';
@@ -137,11 +139,6 @@ const App: React.FC = () => {
 								researchTopic={researchTopic}
 								isGenerating={false}
 								isFollowUp={true}
-								previousReflection={
-									previousReflection?.type === 'reflection-complete'
-										? previousReflection.data
-										: undefined
-								}
 								queries={step.data}
 								roundNumber={roundNumber}
 								key={`${step.type}-${index}`}
@@ -223,7 +220,7 @@ const App: React.FC = () => {
 								reflection={step.data}
 								queryPlan={queryPlan}
 								roundNumber={roundNumber}
-								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
+								key={`reflection-sufficient-${index}-${roundNumber}`}
 							/>
 							{/* Show fact extraction if no summarization step exists yet and this is the last step */}
 							{!hasSummarizationStep &&
@@ -233,7 +230,7 @@ const App: React.FC = () => {
 										isExtracting={true}
 										relevantSourcesCount={step.data.relevantSummariesCount}
 										roundNumber={roundNumber}
-										key={`fact-extraction-generating-${Date.now()}`}
+										key={`fact-extraction-generating-${index}-${roundNumber}`}
 									/>
 								)}
 							{/* Only show generating final answer if this is the last step, there's no answer yet, and no pending summarization */}
@@ -244,7 +241,7 @@ const App: React.FC = () => {
 									<FinalAnswer
 										relevantSummariesCount={step.data.relevantSummariesCount}
 										isGenerating={true}
-										key={`final-answer-generating-${Date.now()}`}
+										key={`final-answer-generating-${index}-${roundNumber}`}
 									/>
 								)}
 						</>
@@ -256,6 +253,30 @@ const App: React.FC = () => {
 					const isLastStep = index === steps.length - 1;
 					const hasAnswerStep = steps.some((s) => s.type === 'answer');
 
+					// Check if knowledge gap analysis is still in progress
+					// Find the most recent insufficient reflection that would have triggered concurrent operations
+					const lastInsufficientReflection = steps
+						.slice(0, index)
+						.findLast(
+							(s) => s.type === 'reflection-complete' && !s.data.isSufficient,
+						);
+
+					const hasKnowledgeGapAnalysisAfterReflection =
+						lastInsufficientReflection
+							? steps
+									.slice(steps.indexOf(lastInsufficientReflection) + 1)
+									.some((s) => s.type === 'knowledge-gap-analysis')
+							: false;
+
+					// Only show final answer if both fact extraction is complete AND knowledge gap analysis is complete
+					// (or there was no insufficient reflection that would trigger knowledge gap analysis)
+					const shouldShowFinalAnswer =
+						!step.isExtracting &&
+						isLastStep &&
+						!hasAnswerStep &&
+						(!lastInsufficientReflection ||
+							hasKnowledgeGapAnalysisAfterReflection);
+
 					return (
 						<>
 							{step.isExtracting ? (
@@ -263,22 +284,22 @@ const App: React.FC = () => {
 									isExtracting={true}
 									relevantSourcesCount={step.relevantSourcesCount}
 									roundNumber={roundNumber}
-									key={`fact-extraction-generating-${Date.now()}`}
+									key={`fact-extraction-generating-${index}-${roundNumber}`}
 								/>
 							) : (
 								<FactExtraction
 									isExtracting={false}
 									extractedFacts={step.extractedFacts}
 									roundNumber={roundNumber}
-									key={`fact-extraction-complete-${Date.now()}`}
+									key={`fact-extraction-complete-${index}-${roundNumber}`}
 								/>
 							)}
-							{/* Show generating final answer if fact extraction is complete, this is the last step, and no answer yet */}
-							{!step.isExtracting && isLastStep && !hasAnswerStep && (
+							{/* Show generating final answer only if fact extraction is complete, this is the last step, no answer yet, AND knowledge gap analysis is complete */}
+							{shouldShowFinalAnswer && (
 								<FinalAnswer
 									relevantSummariesCount={step.extractedFacts.length}
 									isGenerating={true}
-									key={`final-answer-generating-after-extraction-${Date.now()}`}
+									key={`final-answer-generating-after-extraction-${index}-${roundNumber}`}
 								/>
 							)}
 						</>
@@ -314,7 +335,14 @@ const App: React.FC = () => {
 					const lastSearchResults = steps.findLast(
 						(step) => step.type === 'search-results',
 					);
-					const nextStep = index < steps.length - 1 ? steps[index + 1] : null;
+					const isLastStep = index === steps.length - 1;
+					const hasKnowledgeGapAnalysis = steps
+						.slice(index + 1)
+						.some((s) => s.type === 'knowledge-gap-analysis');
+					const hasSummarizationStep = steps
+						.slice(index + 1)
+						.some((s) => s.type === 'summarization');
+
 					return (
 						<>
 							<ReflectionStep
@@ -328,21 +356,95 @@ const App: React.FC = () => {
 								reflection={step.data}
 								queryPlan={queryPlan}
 								roundNumber={roundNumber}
-								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
+								key={`reflection-insufficient-${index}-${roundNumber}`}
 							/>
-							{/* Show follow-up queries if they exist in the next step */}
-							{nextStep?.type === 'queries-generated' && (
-								<QueryGeneration
-									researchTopic={researchTopic}
-									isGenerating={false}
-									isFollowUp={true}
-									previousReflection={step.data}
-									queries={nextStep.data}
-									roundNumber={getRoundNumber(index + 1)}
-									key={`follow-up-queries-${nextStep.data.query.length}`}
+							{/* Show concurrent processing if this is the last step and no concurrent steps exist yet */}
+							{isLastStep && !hasKnowledgeGapAnalysis && (
+								<KnowledgeGapAnalysisComponent
+									isAnalyzing={true}
+									relevantSourcesCount={step.data.relevantSummariesCount || 0}
+									roundNumber={roundNumber}
+									queryPlan={queryPlan}
+									key={`knowledge-gap-analysis-generating-${index}-${roundNumber}`}
 								/>
 							)}
+							{/* Show fact extraction if no summarization step exists yet and this is the last step */}
+							{isLastStep &&
+								!hasSummarizationStep &&
+								step.data.relevantSummariesCount > 0 && (
+									<FactExtraction
+										isExtracting={true}
+										relevantSourcesCount={step.data.relevantSummariesCount}
+										roundNumber={roundNumber}
+										key={`fact-extraction-generating-concurrent-${index}-${roundNumber}`}
+									/>
+								)}
 						</>
+					);
+				}
+
+				// Handle knowledge gap analysis step
+				if (step.type === 'knowledge-gap-analysis') {
+					const isLastStep = index === steps.length - 1;
+					const hasFollowUpStep = steps
+						.slice(index + 1)
+						.some((s) => s.type === 'followup-query-generation');
+
+					return (
+						<>
+							<KnowledgeGapAnalysisComponent
+								isAnalyzing={false}
+								analysis={step.data}
+								roundNumber={roundNumber}
+								queryPlan={queryPlan}
+								key={`knowledge-gap-analysis-${index}-${roundNumber}`}
+							/>
+							{/* Show generating follow-up queries if this is the last step and we should continue research */}
+							{!hasFollowUpStep &&
+								isLastStep &&
+								step.data.shouldContinueResearch && (
+									<FollowUpQueryGenerationComponent
+										isGenerating={true}
+										roundNumber={roundNumber}
+										targetGap={step.data.nextGapToResearch || undefined}
+										previousQueries={
+											step.data.updatedGapHistory.find(
+												(gap) =>
+													gap.description === step.data.nextGapToResearch,
+											)?.previousQueries || []
+										}
+										key={`followup-generating-${index}-${roundNumber}`}
+									/>
+								)}
+						</>
+					);
+				}
+
+				// Handle follow-up query generation step
+				if (step.type === 'followup-query-generation') {
+					// Find the previous knowledge gap analysis to get previous queries
+					const previousGapAnalysis = steps
+						.slice(0, index)
+						.findLast((s) => s.type === 'knowledge-gap-analysis');
+
+					// Get previous queries for the target gap
+					let previousQueries: string[] = [];
+					if (previousGapAnalysis?.type === 'knowledge-gap-analysis') {
+						const targetGap = previousGapAnalysis.data.nextGapToResearch;
+						const matchingGap = previousGapAnalysis.data.updatedGapHistory.find(
+							(gap) => gap.description === targetGap,
+						);
+						previousQueries = matchingGap?.previousQueries || [];
+					}
+
+					return (
+						<FollowUpQueryGenerationComponent
+							isGenerating={false}
+							queryGeneration={step.data}
+							roundNumber={roundNumber}
+							previousQueries={previousQueries}
+							key={`followup-complete-${index}-${roundNumber}`}
+						/>
 					);
 				}
 

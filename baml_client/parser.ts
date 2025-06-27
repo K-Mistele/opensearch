@@ -20,12 +20,32 @@ import { toBamlError } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {ExtractedFact, GenerateQueryArgs, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
+import type {AttemptedKnowledgeGap, ExtractedFact, FollowUpQueryGeneration, GenerateQueryArgs, KnowledgeGapAnalysis, KnowledgeGapHistory, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 
 export class LlmResponseParser {
   constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
 
+  
+  AnalyzeKnowledgeGaps(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
+  ): KnowledgeGapAnalysis {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.parseLlmResponse(
+        "AnalyzeKnowledgeGaps",
+        llmResponse,
+        false,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as KnowledgeGapAnalysis
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
   
   CreateAnswer(
       llmResponse: string,
@@ -87,6 +107,26 @@ export class LlmResponseParser {
     }
   }
   
+  GenerateFollowUpQueries(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
+  ): FollowUpQueryGeneration {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.parseLlmResponse(
+        "GenerateFollowUpQueries",
+        llmResponse,
+        false,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as FollowUpQueryGeneration
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   GenerateQuery(
       llmResponse: string,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
@@ -132,6 +172,26 @@ export class LlmResponseParser {
 export class LlmStreamParser {
   constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
 
+  
+  AnalyzeKnowledgeGaps(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
+  ): partial_types.KnowledgeGapAnalysis {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.parseLlmResponse(
+        "AnalyzeKnowledgeGaps",
+        llmResponse,
+        true,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as partial_types.KnowledgeGapAnalysis
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
   
   CreateAnswer(
       llmResponse: string,
@@ -188,6 +248,26 @@ export class LlmStreamParser {
         __baml_options__?.clientRegistry,
         env,
       ) as (partial_types.ExtractedFact | null)[]
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
+  GenerateFollowUpQueries(
+      llmResponse: string,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry }
+  ): partial_types.FollowUpQueryGeneration {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.parseLlmResponse(
+        "GenerateFollowUpQueries",
+        llmResponse,
+        true,
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        env,
+      ) as partial_types.FollowUpQueryGeneration
     } catch (error) {
       throw toBamlError(error);
     }

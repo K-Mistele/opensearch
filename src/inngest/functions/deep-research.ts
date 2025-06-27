@@ -1,6 +1,10 @@
 import type {
+	AttemptedKnowledgeGap,
 	ExtractedFact,
+	FollowUpQueryGeneration,
 	GenerateQueryArgs,
+	KnowledgeGapAnalysis,
+	KnowledgeGapHistory,
 	Reflection,
 	SearchQueryList,
 	SearchResult,
@@ -16,6 +20,8 @@ export const resultsChannel = channel((uuid: string) => `deep-research.${uuid}`)
 	.addTopic(topic('initialQueries').type<SearchQueryList>())
 	.addTopic(topic('webSearchResults').type<SearchResult[]>())
 	.addTopic(topic('reflection').type<Reflection>())
+	.addTopic(topic('knowledgeGapAnalysis').type<KnowledgeGapAnalysis>())
+	.addTopic(topic('followUpQueryGeneration').type<FollowUpQueryGeneration>())
 	.addTopic(topic('summarization').type<ExtractedFact[]>())
 	.addTopic(topic('finalAnswer').type<string>());
 
@@ -58,10 +64,18 @@ export const deepResearch = inngest.createFunction(
 		// Track extracted facts (those that contain concise, relevant information)
 		const extractedFacts: Array<ExtractedFact> = [];
 
-		// Track which questions from the query plan have been answered
-		let answeredQuestions: Array<number> = [];
-		let unansweredQuestions: Array<number> =
-			initialQueryInformation.queryPlan.map((_, index) => index);
+		// Track which questions from the query plan have been answered (external tracking)
+		const answeredQuestions = new Set<number>();
+		const getUnansweredQuestions = () =>
+			initialQueryInformation.queryPlan
+				.map((_, index) => index)
+				.filter((i) => !answeredQuestions.has(i));
+
+		// Track knowledge gap history for smart abandonment
+		const knowledgeGapHistory: KnowledgeGapHistory = {
+			gaps: [],
+			currentGapIndex: -1,
+		};
 
 		logger.info(`Executing ${initialQueryInformation.query.length} queries`);
 		let queries: Array<string> = initialQueryInformation.query;
@@ -148,13 +162,13 @@ export const deepResearch = inngest.createFunction(
 				return answer;
 			}
 
-			// Otherwise, reflect on the results. force a retry if it's non-sufficient and has no follow-up queries
+			// Otherwise, reflect on the results using the new multi-step approach
 			logger.info(`Reflecting on ${searchResults.length} search results...`);
 			logger.info(
-				`Current answered questions: ${JSON.stringify(answeredQuestions)}`,
+				`Current answered questions: ${JSON.stringify(Array.from(answeredQuestions))}`,
 			);
 			logger.info(
-				`Current unanswered questions: ${JSON.stringify(unansweredQuestions)}`,
+				`Current unanswered questions: ${JSON.stringify(getUnansweredQuestions())}`,
 			);
 			logger.info(
 				`Query plan: ${JSON.stringify(initialQueryInformation.queryPlan)}`,
@@ -168,8 +182,13 @@ export const deepResearch = inngest.createFunction(
 						args.research_topic,
 						new Date().toLocaleDateString(),
 						initialQueryInformation.queryPlan,
-						answeredQuestions,
-						unansweredQuestions,
+						Array.from(answeredQuestions),
+						getUnansweredQuestions(),
+						knowledgeGapHistory.currentGapIndex != null &&
+							knowledgeGapHistory.currentGapIndex >= 0
+							? (knowledgeGapHistory.gaps[knowledgeGapHistory.currentGapIndex]
+									?.description ?? null)
+							: null,
 						currentRound,
 						originalMaxRounds,
 					);
@@ -183,66 +202,93 @@ export const deepResearch = inngest.createFunction(
 							isSufficient: reflection.isSufficient,
 							answeredQuestions: reflection.answeredQuestions,
 							unansweredQuestions: reflection.unansweredQuestions,
-							knowledgeGap: reflection.knowledgeGap,
-							followUpQueriesCount: reflection.followUpQueries?.length || 0,
+							currentGapClosed: reflection.currentGapClosed,
+							newGapsIdentified: reflection.newGapsIdentified,
 							relevantSummaryIdsCount: reflection.relevantSummaryIds.length,
 						})}`,
 					);
 
-					if (!reflection.isSufficient && !reflection.followUpQueries) {
-						throw new Error(
-							'Reflection is not sufficient and has no follow-up queries',
-						);
-					}
 					return reflection;
 				},
 			);
 
-			// Update question tracking based on reflection results
-			answeredQuestions = reflection.answeredQuestions;
-			unansweredQuestions = reflection.unansweredQuestions;
+			// Add newly answered questions to our external tracking (additive only)
+			for (const questionIndex of reflection.answeredQuestions) {
+				answeredQuestions.add(questionIndex);
+			}
 
 			logger.info('Reflection Completed; publishing reflection.');
 			await publish(resultsChannel(uuid).reflection(reflection));
 
-			// Extract facts from relevant sources if any were identified
-			if (reflection.relevantSummaryIds.length > 0) {
-				const relevantSources = searchResults.filter((summary) =>
-					reflection.relevantSummaryIds.includes(summary.id),
-				);
+			// Run concurrent knowledge gap analysis and fact extraction
+			const [gapAnalysis, newExtractedFacts] = await Promise.all([
+				// Knowledge gap analysis (if research is not sufficient)
+				reflection.isSufficient
+					? null
+					: step.run('analyze-knowledge-gaps', async () => {
+							return await b.AnalyzeKnowledgeGaps(
+								knowledgeGapHistory,
+								reflection,
+								initialQueryInformation.queryPlan,
+								currentRound,
+							);
+						}),
+				// Fact extraction (if relevant sources identified)
+				reflection.relevantSummaryIds.length > 0
+					? step.run('extract-relevant-facts', async () => {
+							const relevantSources = searchResults.filter((summary) =>
+								reflection.relevantSummaryIds.includes(summary.id),
+							);
 
-				logger.info(
-					`Extracting facts from ${relevantSources.length} relevant sources...`,
-				);
+							logger.info(
+								`Extracting facts from ${relevantSources.length} relevant sources...`,
+							);
 
-				// Extract facts from relevant sources
-				const newExtractedFacts = await step.run(
-					'extract-relevant-facts',
-					async () => {
-						return await b.ExtractRelevantFacts(
-							relevantSources,
-							args.research_topic,
-							initialQueryInformation.queryPlan,
-							reflection,
-							new Date().toLocaleDateString(),
-						);
-					},
-				);
+							const extractedFactsResult = await b.ExtractRelevantFacts(
+								relevantSources,
+								args.research_topic,
+								initialQueryInformation.queryPlan,
+								reflection,
+								new Date().toLocaleDateString(),
+							);
 
+							logger.info(
+								`Extracted ${extractedFactsResult.length} fact sets.`,
+							);
+
+							return extractedFactsResult;
+						})
+					: null,
+			]);
+
+			// Add newly extracted facts to the collection
+			if (newExtractedFacts) {
 				extractedFacts.push(...newExtractedFacts);
-
-				logger.info(
-					`Extracted ${newExtractedFacts.length} fact sets. Total extracted facts: ${extractedFacts.length}`,
-				);
-
 				// Publish fact extraction results
 				await publish(resultsChannel(uuid).summarization(newExtractedFacts));
 			}
 
-			// check if we should go again
-			if (reflection.isSufficient) {
+			// Emit knowledge gap analysis results and update history
+			if (gapAnalysis) {
+				// Update knowledge gap history based on analysis
+				knowledgeGapHistory.gaps = gapAnalysis.updatedGapHistory;
+
 				logger.info(
-					'Reflection indicated search data is sufficient; generating answer...',
+					`Gap analysis completed: ${JSON.stringify({
+						shouldContinueResearch: gapAnalysis.shouldContinueResearch,
+						nextGapToResearch: gapAnalysis.nextGapToResearch,
+						gapStatus: gapAnalysis.gapStatus,
+						reasoning: gapAnalysis.reasoning,
+					})}`,
+				);
+
+				await publish(resultsChannel(uuid).knowledgeGapAnalysis(gapAnalysis));
+			}
+
+			// Check if research is sufficient or we should continue
+			if (reflection.isSufficient || !gapAnalysis?.shouldContinueResearch) {
+				logger.info(
+					'Research indicated as sufficient or no more gaps to pursue; generating answer...',
 				);
 				logger.info(
 					`Final answered questions: ${JSON.stringify(reflection.answeredQuestions)}`,
@@ -286,16 +332,46 @@ export const deepResearch = inngest.createFunction(
 				return answer;
 			}
 
-			// Otherwise generate the next query for the next loop.
+			// Generate follow-up queries based on knowledge gap analysis
+			const followUpQueries = await step.run(
+				'generate-followup-queries',
+				async () => {
+					return await b.GenerateFollowUpQueries(
+						gapAnalysis.nextGapToResearch ??
+							'Continue research based on unanswered questions',
+						getCurrentGapPreviousQueries(
+							knowledgeGapHistory,
+							gapAnalysis.nextGapToResearch ?? null,
+						),
+						reflection,
+						initialQueryInformation.queryPlan,
+						currentRound,
+						getUnansweredQuestions(),
+					);
+				},
+			);
 
-			if (!reflection.followUpQueries) {
-				throw new NonRetriableError(
-					'Reflection is not sufficient and has no follow-up queries',
+			// Update current gap index if switching to a new gap
+			if (
+				gapAnalysis.gapStatus === 'new' ||
+				gapAnalysis.gapStatus === 'switching'
+			) {
+				const gapIndex = knowledgeGapHistory.gaps.findIndex(
+					(gap) => gap.description === gapAnalysis.nextGapToResearch,
 				);
+				knowledgeGapHistory.currentGapIndex = gapIndex;
 			}
-			queries = reflection.followUpQueries;
+
 			logger.info(
-				`Reflection indicated more data needed; trying ${reflection.followUpQueries.length} follow-up queries...`,
+				`Generated ${followUpQueries.queries.length} follow-up queries for next round`,
+			);
+			await publish(
+				resultsChannel(uuid).followUpQueryGeneration(followUpQueries),
+			);
+
+			queries = followUpQueries.queries;
+			logger.info(
+				`Gap analysis indicated more data needed; trying ${followUpQueries.queries.length} follow-up queries...`,
 			);
 
 			// Increment round counter for next iteration
@@ -303,6 +379,19 @@ export const deepResearch = inngest.createFunction(
 		}
 	},
 );
+
+// Helper function to get previous queries for current knowledge gap
+function getCurrentGapPreviousQueries(
+	gapHistory: KnowledgeGapHistory,
+	targetGap: string | null,
+): string[] {
+	if (!targetGap) return [];
+
+	const gap = gapHistory.gaps.find(
+		(g: AttemptedKnowledgeGap) => g.description === targetGap,
+	);
+	return gap?.previousQueries || [];
+}
 
 function isDeepResearchQuery(data: any): data is DeepResearchInvocation {
 	if (data.research_topic && data.current_date) {

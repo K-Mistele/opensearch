@@ -87,19 +87,36 @@ opensearch/
    - Collection of search results with highlights and full text
 
 4. **Reflection Analysis** (`Reflect` BAML function)
-   - AI analyzes search results against query plan
-   - Tracks answered vs. unanswered questions
-   - Identifies relevant summaries (non-duplicate information)
-   - Determines if information is sufficient
-   - If insufficient: generates targeted follow-up queries
+   - AI analyzes search results for **knowledge gap closure assessment**
+   - Tracks answered vs. unanswered questions from query plan
+   - Identifies relevant sources containing useful information
+   - Determines if current knowledge gap was closed (if any)
+   - Assesses overall research sufficiency
 
-5. **Iteration Logic**
-   - If `isSufficient = false`: execute follow-up queries (repeat from step 3)
-   - If `isSufficient = true` OR max rounds reached: proceed to answer generation
-   - Progress tracking with round numbers and question completion
+5. **Concurrent Processing Phase**
+   - **Knowledge Gap Analysis** (`AnalyzeKnowledgeGaps` BAML function):
+     - Strategic analysis of knowledge gap history and status
+     - Smart abandonment decisions (3-round rule, thoroughness assessment)
+     - Selection of next knowledge gap to research
+     - Decision on whether to continue research or generate final answer
+   - **Fact Extraction** (`ExtractRelevantFacts` BAML function):
+     - Extract concise, relevant facts from sources identified by reflection
+     - Reduce context length while preserving key information
+     - Maintain source attribution for proper citations
 
-6. **Answer Synthesis** (`CreateAnswer` BAML function)
-   - AI synthesizes comprehensive answer from relevant summaries
+6. **Follow-up Query Generation** (`GenerateFollowUpQueries` BAML function)
+   - Generate diverse queries targeting specific knowledge gaps
+   - Avoid repetition of previous failed query attempts
+   - Strategic query diversity using different angles and terminology
+   - Focus on closing identified knowledge gaps
+
+7. **Iteration Logic**
+   - If research insufficient AND gaps worth pursuing: continue with follow-up queries
+   - If research sufficient OR all gaps resolved/abandoned: proceed to answer generation
+   - Progress tracking with round numbers and knowledge gap status
+
+8. **Answer Synthesis** (`CreateAnswer` or `CreateAnswerFromFacts` BAML functions)
+   - AI synthesizes comprehensive answer from extracted facts or search results
    - Markdown formatting with proper structure
    - Automatic footnote generation with source citations
    - Confidence indicators and knowledge gap acknowledgments
@@ -114,18 +131,45 @@ opensearch/
 - **Output**: Search queries, rationale, and comprehensive question plan
 - **Key Features**: SMART question criteria, current date awareness
 
-#### `Reflect(summaries, topic, date, queryPlan, answered, unanswered, round, maxRounds) -> Reflection`
-- **Purpose**: Analyze search results and determine research completeness
+#### `Reflect(summaries, topic, date, queryPlan, answered, unanswered, currentGap, round, maxRounds) -> Reflection`
+- **Purpose**: Analyze search results for knowledge gap closure assessment
+- **Model**: Gemini 2.5 Flash (fast analysis)
+- **Focus**: Gap closure evaluation, question tracking, source identification
+- **Output**: Gap closure status, answered questions, relevant sources
+- **Key Features**: Conservative gap closure assessment, evidence-based evaluation
+
+#### `AnalyzeKnowledgeGaps(gapHistory, reflection, queryPlan, currentRound) -> KnowledgeGapAnalysis`
+- **Purpose**: Strategic analysis of knowledge gap history and research continuation
 - **Model**: Gemini 2.5 Pro (advanced reasoning)
-- **Logic**: Conservative early rounds, decisive final rounds
-- **Output**: Sufficiency assessment, knowledge gaps, follow-up queries
-- **Key Features**: Question tracking, relevant summary identification
+- **Logic**: Smart abandonment criteria, gap prioritization, research strategy
+- **Output**: Continue/stop decision, next gap selection, updated gap history
+- **Key Features**: 3-round abandonment rule, thoroughness assessment, gap tracking
+
+#### `ExtractRelevantFacts(relevantSources, topic, queryPlan, reflection, date) -> ExtractedFact[]`
+- **Purpose**: Extract concise facts from relevant sources to reduce context length
+- **Model**: Gemini 2.5 Flash (efficient extraction)
+- **Logic**: Extract only facts relevant to query plan, avoid duplication
+- **Output**: Concise facts with source attribution for citations
+- **Key Features**: Context optimization, fact relevance filtering, citation preservation
+
+#### `GenerateFollowUpQueries(targetGap, previousQueries, reflection, queryPlan, currentRound) -> FollowUpQueryGeneration`
+- **Purpose**: Generate diverse queries for specific knowledge gaps
+- **Model**: Gemini 2.5 Flash (fast query generation)
+- **Logic**: Query diversity strategy, avoid repetition, gap-focused targeting
+- **Output**: Diverse follow-up queries with strategy explanation
+- **Key Features**: Query diversification, gap history awareness, strategic targeting
 
 #### `CreateAnswer(date, topic, summaries) -> string`
-- **Purpose**: Synthesize comprehensive research answer
+- **Purpose**: Synthesize comprehensive research answer from search results
 - **Model**: Gemini 2.5 Pro (high-quality generation)
 - **Output**: Markdown-formatted answer with citations
 - **Key Features**: Footnote system, confidence indicators, source attribution
+
+#### `CreateAnswerFromFacts(date, topic, extractedFacts) -> string`
+- **Purpose**: Synthesize comprehensive research answer from extracted facts
+- **Model**: Gemini 2.5 Pro (high-quality generation)
+- **Output**: Markdown-formatted answer with citations
+- **Key Features**: Optimized for extracted facts, maintains citation accuracy
 
 ### Data Structures (baml_src/types.baml)
 
@@ -136,11 +180,26 @@ Reflection: {
   isSufficient: bool, 
   answeredQuestions: int[], 
   unansweredQuestions: int[],
-  knowledgeGap?: string,
-  followUpQueries?: string[],
-  relevantSummaryIds: string[]
+  relevantSummaryIds: string[],
+  currentGapClosed: bool,
+  newGapsIdentified?: string[]
 }
 SearchResult: { url, id, title, highlights, text, highlightScores }
+ExtractedFact: { sourceId, relevantFacts: string[], summary }
+
+// Knowledge gap tracking types
+KnowledgeGapHistory: { gaps: AttemptedKnowledgeGap[], currentGapIndex?: int }
+AttemptedKnowledgeGap: { 
+  description, status: "active"|"abandoned"|"resolved", 
+  attemptCount, previousQueries: string[], 
+  relatedQuestionIds: int[], firstAttemptedRound, lastAttemptedRound 
+}
+KnowledgeGapAnalysis: { 
+  shouldContinueResearch: bool, nextGapToResearch?, 
+  gapStatus: "new"|"continuing"|"switching"|"complete", 
+  reasoning, updatedGapHistory: AttemptedKnowledgeGap[] 
+}
+FollowUpQueryGeneration: { queries: string[], rationale, queryStrategy }
 ```
 
 ## CLI Application Architecture
@@ -150,29 +209,36 @@ SearchResult: { url, id, title, highlights, text, highlightScores }
 ```typescript
 // Main workflow steps
 type Step = 
-  | 'input'                  // User input received
-  | 'queries-generated'      // Search queries created
-  | 'searching'              // Web searches in progress  
-  | 'search-results'         // Search results collected
-  | 'reflection-complete'    // Analysis finished
-  | 'max-steps-reached'      // Round limit reached
-  | 'answer'                 // Final answer ready
+  | 'input'                        // User input received
+  | 'queries-generated'            // Search queries created
+  | 'searching'                    // Web searches in progress  
+  | 'search-results'               // Search results collected
+  | 'reflection-complete'          // Gap closure analysis finished
+  | 'knowledge-gap-analysis'       // Strategic gap analysis complete
+  | 'followup-query-generation'    // Follow-up queries generated
+  | 'summarization'                // Fact extraction (generating/complete)
+  | 'max-steps-reached'            // Round limit reached
+  | 'answer'                       // Final answer ready
 ```
 
 **Key Features:**
 - **Real-time UI updates** via EventEmitter
-- **Progress visualization** with round tracking
-- **State management** for complex multi-step workflow
-- **Follow-up query handling** with visual distinction
+- **Progress visualization** with round tracking and gap status
+- **State management** for complex multi-step workflow with knowledge gap history
+- **Concurrent processing** of gap analysis and fact extraction
+- **Strategic follow-up query generation** with diversity optimization
 - **Error boundaries** and graceful degradation
 
 ### UI Components
 
 - **ResearchInput**: Text input with submission handling
-- **QueryGeneration**: Shows initial + follow-up queries with rationale
+- **QueryGeneration**: Shows initial + follow-up queries with rationale and round context
 - **SearchResults**: Real-time search progress with query status
-- **ReflectionStep**: Analysis results with question progress tracking
-- **FinalAnswer**: Answer synthesis with source count
+- **ReflectionStep**: Gap closure analysis and question progress tracking
+- **KnowledgeGapAnalysis**: Gap history, abandonment decisions, and next gap selection
+- **FollowUpQueryGeneration**: Targeted query generation with diversity strategy
+- **FactExtraction**: Concurrent fact extraction progress and results
+- **FinalAnswer**: Answer synthesis with extracted facts or search results
 - **MarkdownRenderer**: Citation rendering with link handling
 
 ## Inngest Workflow Architecture

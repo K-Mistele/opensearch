@@ -46,6 +46,17 @@ export function all_succeeded<CheckName extends string>(checks: Record<CheckName
 export function get_checks<CheckName extends string>(checks: Record<CheckName, Check>): Check[] {
     return Object.values(checks)
 }
+export interface AttemptedKnowledgeGap {
+  description: string
+  attemptCount: number
+  status: "active" | "abandoned" | "resolved"
+  previousQueries: string[]
+  relatedQuestionIds: number[]
+  firstAttemptedRound: number
+  lastAttemptedRound: number
+  
+}
+
 export interface ExtractedFact {
   sourceId: string
   relevantFacts: string[]
@@ -53,10 +64,32 @@ export interface ExtractedFact {
   
 }
 
+export interface FollowUpQueryGeneration {
+  queries: string[]
+  rationale: string
+  queryStrategy: string
+  
+}
+
 export interface GenerateQueryArgs {
   research_topic: string
   current_date: string
   number_queries?: number | null
+  
+}
+
+export interface KnowledgeGapAnalysis {
+  shouldContinueResearch: boolean
+  nextGapToResearch?: string | null
+  gapStatus: "new" | "continuing" | "switching" | "complete"
+  reasoning: string
+  updatedGapHistory: AttemptedKnowledgeGap[]
+  
+}
+
+export interface KnowledgeGapHistory {
+  gaps: AttemptedKnowledgeGap[]
+  currentGapIndex?: number | null
   
 }
 
@@ -81,10 +114,9 @@ export interface Reflection {
   isSufficient: boolean
   answeredQuestions: number[]
   unansweredQuestions: number[]
-  knowledgeGap?: string | null
-  followUpQueries?: string[] | null
-  followupQueriesRationale?: string[] | null
   relevantSummaryIds: string[]
+  currentGapClosed: boolean
+  newGapsIdentified?: string[] | null
   
 }
 

@@ -19,7 +19,7 @@ import type { BamlRuntime, FunctionResult, BamlCtxManager, Image, Audio, ClientR
 import { toBamlError, type HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type * as types from "./types"
-import type {ExtractedFact, GenerateQueryArgs, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
+import type {AttemptedKnowledgeGap, ExtractedFact, FollowUpQueryGeneration, GenerateQueryArgs, KnowledgeGapAnalysis, KnowledgeGapHistory, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 import { HttpRequest, HttpStreamRequest } from "./sync_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -85,6 +85,31 @@ export class BamlSyncClient {
     return this.llmStreamParser
   }
 
+  
+  AnalyzeKnowledgeGaps(
+      gapHistory: KnowledgeGapHistory,reflection: Reflection,queryPlan: string[],currentRound: number,
+      __baml_options__?: BamlCallOptions
+  ): KnowledgeGapAnalysis {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = this.runtime.callFunctionSync(
+        "AnalyzeKnowledgeGaps",
+        {
+          "gapHistory": gapHistory,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound
+        },
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return raw.parsed(false) as KnowledgeGapAnalysis
+    } catch (error: any) {
+      throw toBamlError(error);
+    }
+  }
   
   CreateAnswer(
       current_date: string,research_topic: string,summaries: SearchResult[],
@@ -161,6 +186,31 @@ export class BamlSyncClient {
     }
   }
   
+  GenerateFollowUpQueries(
+      targetGap: string,previousQueries: string[],reflection: Reflection,queryPlan: string[],currentRound: number,unansweredQuestions: number[],
+      __baml_options__?: BamlCallOptions
+  ): FollowUpQueryGeneration {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = this.runtime.callFunctionSync(
+        "GenerateFollowUpQueries",
+        {
+          "targetGap": targetGap,"previousQueries": previousQueries,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound,"unansweredQuestions": unansweredQuestions
+        },
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return raw.parsed(false) as FollowUpQueryGeneration
+    } catch (error: any) {
+      throw toBamlError(error);
+    }
+  }
+  
   GenerateQuery(
       args: GenerateQueryArgs,
       __baml_options__?: BamlCallOptions
@@ -187,7 +237,7 @@ export class BamlSyncClient {
   }
   
   Reflect(
-      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentRound: number,maxRounds: number,
+      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentGap?: string | null,currentRound: number,maxRounds: number,
       __baml_options__?: BamlCallOptions
   ): Reflection {
     try {
@@ -197,7 +247,7 @@ export class BamlSyncClient {
       const raw = this.runtime.callFunctionSync(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentRound": currentRound,"maxRounds": maxRounds
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentGap": currentGap?? null,"currentRound": currentRound,"maxRounds": maxRounds
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),

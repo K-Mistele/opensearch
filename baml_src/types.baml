@@ -11,21 +11,18 @@ class SearchQueryList {
 }
 
 class Reflection {
-    isSufficient bool @description("Whether the provided summaries are sufficient to answer the user's question and any remaining unanswered questions from the query plan")
-    answeredQuestions int[] @description("IDs of questions from the query plan that have been sufficiently answered based on the current search results")
-    unansweredQuestions int[] @description("IDs of questions from the query plan that still need to be addressed")
-    knowledgeGap string? @description("A description of what information is missing or needs clarification, if isSufficient is false. This should be short and concise, no more than 2 sentences.")
-    followUpQueries string[]? @description("A list of follow-up web search queries to be researched to address the knowledge gap, if isSufficient is false. Remember that we are using Exa's Search API so the queries should not use google-specific search operators")
-    followupQueriesRationale string[]? @description("Your rationale for why these follow-up queries are relevant to the research topic in the context of the knowledge gap, addressed as though you were speaking to a user explaining what you are doing (if isSufficient is false)")
-    relevantSummaryIds string[] @description("IDs of summaries that contain unique, relevant information for answering the research topic and query plan. Only include summaries that contain information which is directly relevant to the research topic/query plan and which is not already contained by other summaries")
+    isSufficient bool @description("Whether research is complete overall")
+    answeredQuestions int[] @description("Cumulative list of query plan question indices that have been answered across all rounds so far")
+    unansweredQuestions int[] @description("Cumulative list of query plan question indices that remain unanswered across all rounds so far")
+    relevantSummaryIds string[] @description("Sources with relevant information")
+    currentGapClosed bool @description("Whether the knowledge gap we were trying to close this round was successfully closed")
+    newGapsIdentified string[]? @description("Any new knowledge gaps discovered this round")
 }
-
 
 class Message {
     role string @description("The role of the message sender (e.g., 'user', 'assistant', 'system')")
     content string @description("The content of the message")
 }
-
 
 class ReflectionState {
     is_sufficient bool @description("Whether the current information is sufficient")
@@ -66,4 +63,37 @@ class ExtractedFact {
     sourceId string @description("ID matching the original Search Result for citation purposes")
     relevantFacts string[] @description("Array of concise facts relevant to the query plan (max 5 facts, 2-3 sentences each, only extract what's necessary)")
     summary string @description("Brief summary of the source's relevance to the research topic")
+}
+
+// Knowledge Gap History Tracking Types
+class AttemptedKnowledgeGap {
+    description string @description("Description of the knowledge gap")
+    attemptCount int @description("Number of rounds spent trying to solve this gap")
+    status "active" | "abandoned" | "resolved" @description("Current status of this knowledge gap")
+    previousQueries string[] @description("All queries previously tried for this gap")
+    relatedQuestionIds int[] @description("Query plan question IDs this gap addresses")
+    firstAttemptedRound int @description("Round when this gap was first identified")
+    lastAttemptedRound int @description("Most recent round when this gap was attempted")
+}
+
+class KnowledgeGapHistory {
+    gaps AttemptedKnowledgeGap[] @description("History of all knowledge gaps attempted")
+    currentGapIndex int? @description("Index of the currently active knowledge gap (-1 if none)")
+}
+
+
+
+// Knowledge Gap Analysis types
+class KnowledgeGapAnalysis {
+    shouldContinueResearch bool @description("Whether to continue research or generate final answer")
+    nextGapToResearch string? @description("Description of the next knowledge gap to focus on")
+    gapStatus "new" | "continuing" | "switching" | "complete" @description("What we're doing with knowledge gaps")
+    reasoning string @description("Explanation of the decision")
+    updatedGapHistory AttemptedKnowledgeGap[] @description("Updated status of all attempted gaps")
+}
+
+class FollowUpQueryGeneration {
+    queries string[] @description("Follow-up search queries for the current knowledge gap")
+    rationale string @description("Explanation of why these queries will help close the gap")
+    queryStrategy string @description("Strategy used to ensure query diversity")
 }

@@ -1,7 +1,9 @@
 import { exa } from '@/inngest/functions/execute-searches';
 import { nanoid, processFootnotes } from '@/utils';
 import {
+	type AttemptedKnowledgeGap,
 	type ExtractedFact,
+	type KnowledgeGapHistory,
 	type SearchQueryList,
 	type SearchResult,
 	b,
@@ -10,7 +12,9 @@ import { EventEmitter } from 'node:events';
 import type {
 	AgentState,
 	AnswerStep,
+	FollowUpQueryGenerationStep,
 	InputStep,
+	KnowledgeGapAnalysisStep,
 	MaxStepsReachedStep,
 	QueriesGeneratedStep,
 	ReflectionStep,
@@ -41,6 +45,7 @@ export async function executeAgent({
 		state: 'start',
 		roundsLeft: rounds,
 		answer: null,
+		knowledgeGapHistory: { gaps: [], currentGapIndex: -1 },
 	};
 
 	console.log(`Now there are ${state.steps.length} steps`);
@@ -58,11 +63,12 @@ export async function executeAgent({
 	// Track extracted facts (those that contain concise, relevant information)
 	const extractedFacts: Array<ExtractedFact> = [];
 
-	// Track which questions from the query plan have been answered
-	let answeredQuestions: Array<number> = [];
-	let unansweredQuestions: Array<number> = initialQueries.queryPlan.map(
-		(_, index) => index,
-	);
+	// Track which questions from the query plan have been answered (external tracking)
+	const answeredQuestions = new Set<number>();
+	const getUnansweredQuestions = () =>
+		initialQueries.queryPlan
+			.map((_, index) => index)
+			.filter((i) => !answeredQuestions.has(i));
 
 	let queries: Array<string> = initialQueries.query;
 	while (state.roundsLeft > 0) {
@@ -152,65 +158,123 @@ export async function executeAgent({
 			researchTopic,
 			new Date().toLocaleDateString(),
 			initialQueries.queryPlan,
-			answeredQuestions,
-			unansweredQuestions,
+			Array.from(answeredQuestions),
+			getUnansweredQuestions(),
+			state.knowledgeGapHistory.currentGapIndex != null &&
+				state.knowledgeGapHistory.currentGapIndex >= 0
+				? (state.knowledgeGapHistory.gaps[
+						state.knowledgeGapHistory.currentGapIndex
+					]?.description ?? null)
+				: null,
 			currentRound,
 			originalMaxRounds,
 		);
 
-		// Update question tracking based on reflection results
-		answeredQuestions = reflection.answeredQuestions;
-		unansweredQuestions = reflection.unansweredQuestions;
+		// Debug logging for question tracking
+		console.log(`Round ${currentRound} Question Tracking:`);
+		console.log(
+			`  Before reflection - Answered: [${Array.from(answeredQuestions).join(', ')}]`,
+		);
+		console.log(
+			`  Before reflection - Unanswered: [${getUnansweredQuestions().join(', ')}]`,
+		);
+		console.log(
+			`  New answers this round: [${reflection.answeredQuestions.join(', ')}]`,
+		);
+
+		// Add newly answered questions to our external tracking (additive only)
+		for (const questionIndex of reflection.answeredQuestions) {
+			answeredQuestions.add(questionIndex);
+		}
+
+		console.log(
+			`  Final answered questions: [${Array.from(answeredQuestions).join(', ')}]`,
+		);
+		console.log(
+			`  Final unanswered questions: [${getUnansweredQuestions().join(', ')}]`,
+		);
 
 		eventEmitter.emit('state-update', {
 			type: 'reflection-complete',
 			data: {
 				...reflection,
+				// Use external tracking for answered/unanswered questions
+				answeredQuestions: Array.from(answeredQuestions),
+				unansweredQuestions: getUnansweredQuestions(),
 				relevantSummariesCount: extractedFacts.length,
 			},
 		} satisfies ReflectionStep);
 
-		// Extract facts from relevant sources if any were identified
-		if (reflection.relevantSummaryIds.length > 0) {
-			const relevantSources = searchResults.filter((summary) =>
-				reflection.relevantSummaryIds.includes(summary.id),
-			);
+		// Run concurrent knowledge gap analysis and fact extraction
+		const [gapAnalysis, newExtractedFacts] = await Promise.all([
+			// Knowledge gap analysis (if research is not sufficient)
+			reflection.isSufficient
+				? null
+				: b.AnalyzeKnowledgeGaps(
+						state.knowledgeGapHistory,
+						reflection,
+						initialQueries.queryPlan,
+						currentRound,
+					),
+			// Fact extraction (if relevant sources identified)
+			reflection.relevantSummaryIds.length > 0
+				? (async () => {
+						const relevantSources = searchResults.filter((summary) =>
+							reflection.relevantSummaryIds.includes(summary.id),
+						);
 
-			console.log(
-				`Extracting facts from ${relevantSources.length} relevant sources...`,
-			);
+						console.log(
+							`Extracting facts from ${relevantSources.length} relevant sources...`,
+						);
 
-			// Emit fact extraction start event
-			eventEmitter.emit('state-update', {
-				type: 'summarization',
-				isExtracting: true,
-				relevantSourcesCount: relevantSources.length,
-			} satisfies SummarizationStep);
+						// Emit fact extraction start event
+						eventEmitter.emit('state-update', {
+							type: 'summarization',
+							isExtracting: true,
+							relevantSourcesCount: relevantSources.length,
+						} satisfies SummarizationStep);
 
-			// Extract facts from relevant sources
-			const newExtractedFacts = await b.ExtractRelevantFacts(
-				relevantSources,
-				researchTopic,
-				initialQueries.queryPlan,
-				reflection,
-				new Date().toLocaleDateString(),
-			);
+						// Extract facts from relevant sources
+						const extractedFactsResult = await b.ExtractRelevantFacts(
+							relevantSources,
+							researchTopic,
+							initialQueries.queryPlan,
+							reflection,
+							new Date().toLocaleDateString(),
+						);
 
+						console.log(`Extracted ${extractedFactsResult.length} fact sets.`);
+
+						// Emit fact extraction complete event
+						eventEmitter.emit('state-replace', {
+							type: 'summarization',
+							isExtracting: false,
+							extractedFacts: extractedFactsResult,
+						} satisfies SummarizationStep);
+
+						return extractedFactsResult;
+					})()
+				: null,
+		]);
+
+		// Add newly extracted facts to the collection
+		if (newExtractedFacts) {
 			extractedFacts.push(...newExtractedFacts);
-
-			console.log(
-				`Extracted ${newExtractedFacts.length} fact sets. Total extracted facts: ${extractedFacts.length}`,
-			);
-
-			// Emit fact extraction complete event
-			eventEmitter.emit('state-replace', {
-				type: 'summarization',
-				isExtracting: false,
-				extractedFacts: newExtractedFacts,
-			} satisfies SummarizationStep);
 		}
 
-		if (reflection.isSufficient) {
+		// Emit knowledge gap analysis results
+		if (gapAnalysis) {
+			// Update knowledge gap history based on analysis
+			state.knowledgeGapHistory.gaps = gapAnalysis.updatedGapHistory;
+
+			eventEmitter.emit('state-update', {
+				type: 'knowledge-gap-analysis',
+				data: gapAnalysis,
+			} satisfies KnowledgeGapAnalysisStep);
+		}
+
+		// Check if research is sufficient or we should continue
+		if (reflection.isSufficient || !gapAnalysis?.shouldContinueResearch) {
 			let answer: string;
 			if (extractedFacts.length > 0) {
 				answer = await b.CreateAnswerFromFacts(
@@ -242,23 +306,52 @@ export async function executeAgent({
 			return state.answer;
 		}
 
-		if (!reflection.followUpQueries)
-			throw new Error('Follow-up queries are not specified but should be!');
-		queries = reflection.followUpQueries;
+		// Generate follow-up queries based on knowledge gap analysis
+		const followUpQueries = await b.GenerateFollowUpQueries(
+			gapAnalysis.nextGapToResearch ??
+				'Continue research based on unanswered questions',
+			getCurrentGapPreviousQueries(
+				state.knowledgeGapHistory,
+				gapAnalysis.nextGapToResearch ?? null,
+			),
+			reflection,
+			initialQueries.queryPlan,
+			currentRound,
+			getUnansweredQuestions(),
+		);
 
-		// Emit follow-up queries for UI display
+		// Update current gap index if switching to a new gap
+		if (
+			gapAnalysis.gapStatus === 'new' ||
+			gapAnalysis.gapStatus === 'switching'
+		) {
+			const gapIndex = state.knowledgeGapHistory.gaps.findIndex(
+				(gap) => gap.description === gapAnalysis.nextGapToResearch,
+			);
+			state.knowledgeGapHistory.currentGapIndex = gapIndex;
+		}
+
 		eventEmitter.emit('state-update', {
-			type: 'queries-generated',
-			data: {
-				query: reflection.followUpQueries,
-				rationale:
-					reflection.knowledgeGap ||
-					'Additional information needed to complete the research',
-				queryPlan: initialQueries.queryPlan,
-			} satisfies SearchQueryList,
-		} satisfies QueriesGeneratedStep);
+			type: 'followup-query-generation',
+			data: followUpQueries,
+		} satisfies FollowUpQueryGenerationStep);
+
+		queries = followUpQueries.queries;
 
 		// Increment round counter for next iteration
 		currentRound += 1;
 	}
+}
+
+// Helper function to get previous queries for current knowledge gap
+function getCurrentGapPreviousQueries(
+	gapHistory: KnowledgeGapHistory,
+	targetGap: string | null,
+): string[] {
+	if (!targetGap) return [];
+
+	const gap = gapHistory.gaps.find(
+		(g: AttemptedKnowledgeGap) => g.description === targetGap,
+	);
+	return gap?.previousQueries || [];
 }

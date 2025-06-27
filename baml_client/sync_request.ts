@@ -19,7 +19,7 @@ import type { BamlRuntime, BamlCtxManager, ClientRegistry, Image, Audio } from "
 import { toBamlError, HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check } from "./types"
 import type * as types from "./types"
-import type {ExtractedFact, GenerateQueryArgs, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
+import type {AttemptedKnowledgeGap, ExtractedFact, FollowUpQueryGeneration, GenerateQueryArgs, KnowledgeGapAnalysis, KnowledgeGapHistory, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 
 type BamlCallOptions = {
@@ -31,6 +31,28 @@ type BamlCallOptions = {
 export class HttpRequest {
   constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
 
+  
+  AnalyzeKnowledgeGaps(
+      gapHistory: KnowledgeGapHistory,reflection: Reflection,queryPlan: string[],currentRound: number,
+      __baml_options__?: BamlCallOptions
+  ): HTTPRequest {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.buildRequestSync(
+        "AnalyzeKnowledgeGaps",
+        {
+          "gapHistory": gapHistory,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env,
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
   
   CreateAnswer(
       current_date: string,research_topic: string,summaries: SearchResult[],
@@ -98,6 +120,28 @@ export class HttpRequest {
     }
   }
   
+  GenerateFollowUpQueries(
+      targetGap: string,previousQueries: string[],reflection: Reflection,queryPlan: string[],currentRound: number,unansweredQuestions: number[],
+      __baml_options__?: BamlCallOptions
+  ): HTTPRequest {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.buildRequestSync(
+        "GenerateFollowUpQueries",
+        {
+          "targetGap": targetGap,"previousQueries": previousQueries,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound,"unansweredQuestions": unansweredQuestions
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        false,
+        env,
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   GenerateQuery(
       args: GenerateQueryArgs,
       __baml_options__?: BamlCallOptions
@@ -121,7 +165,7 @@ export class HttpRequest {
   }
   
   Reflect(
-      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentRound: number,maxRounds: number,
+      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentGap?: string | null,currentRound: number,maxRounds: number,
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -129,7 +173,7 @@ export class HttpRequest {
       return this.runtime.buildRequestSync(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentRound": currentRound,"maxRounds": maxRounds
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentGap": currentGap?? null,"currentRound": currentRound,"maxRounds": maxRounds
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -148,6 +192,28 @@ export class HttpStreamRequest {
   constructor(private runtime: BamlRuntime, private ctxManager: BamlCtxManager) {}
 
   
+  AnalyzeKnowledgeGaps(
+      gapHistory: KnowledgeGapHistory,reflection: Reflection,queryPlan: string[],currentRound: number,
+      __baml_options__?: BamlCallOptions
+  ): HTTPRequest {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.buildRequestSync(
+        "AnalyzeKnowledgeGaps",
+        {
+          "gapHistory": gapHistory,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env,
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   CreateAnswer(
       current_date: string,research_topic: string,summaries: SearchResult[],
       __baml_options__?: BamlCallOptions
@@ -214,6 +280,28 @@ export class HttpStreamRequest {
     }
   }
   
+  GenerateFollowUpQueries(
+      targetGap: string,previousQueries: string[],reflection: Reflection,queryPlan: string[],currentRound: number,unansweredQuestions: number[],
+      __baml_options__?: BamlCallOptions
+  ): HTTPRequest {
+    try {
+      const env = __baml_options__?.env ? { ...process.env, ...__baml_options__.env } : { ...process.env };
+      return this.runtime.buildRequestSync(
+        "GenerateFollowUpQueries",
+        {
+          "targetGap": targetGap,"previousQueries": previousQueries,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound,"unansweredQuestions": unansweredQuestions
+        },
+        this.ctxManager.cloneContext(),
+        __baml_options__?.tb?.__tb(),
+        __baml_options__?.clientRegistry,
+        true,
+        env,
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   GenerateQuery(
       args: GenerateQueryArgs,
       __baml_options__?: BamlCallOptions
@@ -237,7 +325,7 @@ export class HttpStreamRequest {
   }
   
   Reflect(
-      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentRound: number,maxRounds: number,
+      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentGap?: string | null,currentRound: number,maxRounds: number,
       __baml_options__?: BamlCallOptions
   ): HTTPRequest {
     try {
@@ -245,7 +333,7 @@ export class HttpStreamRequest {
       return this.runtime.buildRequestSync(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentRound": currentRound,"maxRounds": maxRounds
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentGap": currentGap?? null,"currentRound": currentRound,"maxRounds": maxRounds
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

@@ -1,5 +1,8 @@
 import type {
 	ExtractedFact,
+	FollowUpQueryGeneration,
+	KnowledgeGapAnalysis,
+	KnowledgeGapHistory,
 	Reflection,
 	SearchQueryList,
 	SearchResult,
@@ -35,6 +38,16 @@ export type ReflectionStep = {
 	};
 };
 
+export type KnowledgeGapAnalysisStep = {
+	type: 'knowledge-gap-analysis';
+	data: KnowledgeGapAnalysis;
+};
+
+export type FollowUpQueryGenerationStep = {
+	type: 'followup-query-generation';
+	data: FollowUpQueryGeneration;
+};
+
 export type SummarizationStep = {
 	type: 'summarization';
 } & (
@@ -64,6 +77,8 @@ export type Step =
 	| SearchResultsStep
 	| ReflectionStep
 	| SummarizationStep
+	| KnowledgeGapAnalysisStep
+	| FollowUpQueryGenerationStep
 	| MaxStepsReachedStep
 	| AnswerStep;
 
@@ -74,4 +89,5 @@ export interface AgentState {
 	state: 'start' | 'generating-queries' | Step['type'] | 'done';
 	roundsLeft: number;
 	answer: string | null;
+	knowledgeGapHistory: KnowledgeGapHistory;
 }

@@ -20,7 +20,7 @@ import { toBamlError, BamlStream, type HTTPRequest } from "@boundaryml/baml"
 import type { Checked, Check, RecursivePartialNull as MovedRecursivePartialNull } from "./types"
 import type { partial_types } from "./partial_types"
 import type * as types from "./types"
-import type {ExtractedFact, GenerateQueryArgs, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
+import type {AttemptedKnowledgeGap, ExtractedFact, FollowUpQueryGeneration, GenerateQueryArgs, KnowledgeGapAnalysis, KnowledgeGapHistory, Message, Query, QueryGenerationState, Reflection, ReflectionState, SearchQueryList, SearchResult, SearchStateOutput, WebSearchState} from "./types"
 import type TypeBuilder from "./type_builder"
 import { AsyncHttpRequest, AsyncHttpStreamRequest } from "./async_request"
 import { LlmResponseParser, LlmStreamParser } from "./parser"
@@ -83,6 +83,31 @@ export class BamlAsyncClient {
     return this.llmStreamParser
   }
 
+  
+  async AnalyzeKnowledgeGaps(
+      gapHistory: KnowledgeGapHistory,reflection: Reflection,queryPlan: string[],currentRound: number,
+      __baml_options__?: BamlCallOptions
+  ): Promise<KnowledgeGapAnalysis> {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = await this.runtime.callFunction(
+        "AnalyzeKnowledgeGaps",
+        {
+          "gapHistory": gapHistory,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound
+        },
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return raw.parsed(false) as KnowledgeGapAnalysis
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
   
   async CreateAnswer(
       current_date: string,research_topic: string,summaries: SearchResult[],
@@ -159,6 +184,31 @@ export class BamlAsyncClient {
     }
   }
   
+  async GenerateFollowUpQueries(
+      targetGap: string,previousQueries: string[],reflection: Reflection,queryPlan: string[],currentRound: number,unansweredQuestions: number[],
+      __baml_options__?: BamlCallOptions
+  ): Promise<FollowUpQueryGeneration> {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = await this.runtime.callFunction(
+        "GenerateFollowUpQueries",
+        {
+          "targetGap": targetGap,"previousQueries": previousQueries,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound,"unansweredQuestions": unansweredQuestions
+        },
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return raw.parsed(false) as FollowUpQueryGeneration
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   async GenerateQuery(
       args: GenerateQueryArgs,
       __baml_options__?: BamlCallOptions
@@ -185,7 +235,7 @@ export class BamlAsyncClient {
   }
   
   async Reflect(
-      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentRound: number,maxRounds: number,
+      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentGap?: string | null,currentRound: number,maxRounds: number,
       __baml_options__?: BamlCallOptions
   ): Promise<Reflection> {
     try {
@@ -195,7 +245,7 @@ export class BamlAsyncClient {
       const raw = await this.runtime.callFunction(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentRound": currentRound,"maxRounds": maxRounds
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentGap": currentGap?? null,"currentRound": currentRound,"maxRounds": maxRounds
         },
         this.ctxManager.cloneContext(),
         options.tb?.__tb(),
@@ -222,6 +272,37 @@ class BamlStreamClient {
     this.bamlOptions = bamlOptions || { env: { ...process.env } }
   }
 
+  
+  AnalyzeKnowledgeGaps(
+      gapHistory: KnowledgeGapHistory,reflection: Reflection,queryPlan: string[],currentRound: number,
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
+  ): BamlStream<partial_types.KnowledgeGapAnalysis, KnowledgeGapAnalysis> {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = this.runtime.streamFunction(
+        "AnalyzeKnowledgeGaps",
+        {
+          "gapHistory": gapHistory,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound
+        },
+        undefined,
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return new BamlStream<partial_types.KnowledgeGapAnalysis, KnowledgeGapAnalysis>(
+        raw,
+        (a): partial_types.KnowledgeGapAnalysis => a,
+        (a): KnowledgeGapAnalysis => a,
+        this.ctxManager.cloneContext(),
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
   
   CreateAnswer(
       current_date: string,research_topic: string,summaries: SearchResult[],
@@ -316,6 +397,37 @@ class BamlStreamClient {
     }
   }
   
+  GenerateFollowUpQueries(
+      targetGap: string,previousQueries: string[],reflection: Reflection,queryPlan: string[],currentRound: number,unansweredQuestions: number[],
+      __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
+  ): BamlStream<partial_types.FollowUpQueryGeneration, FollowUpQueryGeneration> {
+    try {
+      const options = { ...this.bamlOptions, ...(__baml_options__ || {}) }
+      const collector = options.collector ? (Array.isArray(options.collector) ? options.collector : [options.collector]) : [];
+      const env = options.env ? { ...process.env, ...options.env } : { ...process.env };
+      const raw = this.runtime.streamFunction(
+        "GenerateFollowUpQueries",
+        {
+          "targetGap": targetGap,"previousQueries": previousQueries,"reflection": reflection,"queryPlan": queryPlan,"currentRound": currentRound,"unansweredQuestions": unansweredQuestions
+        },
+        undefined,
+        this.ctxManager.cloneContext(),
+        options.tb?.__tb(),
+        options.clientRegistry,
+        collector,
+        env,
+      )
+      return new BamlStream<partial_types.FollowUpQueryGeneration, FollowUpQueryGeneration>(
+        raw,
+        (a): partial_types.FollowUpQueryGeneration => a,
+        (a): FollowUpQueryGeneration => a,
+        this.ctxManager.cloneContext(),
+      )
+    } catch (error) {
+      throw toBamlError(error);
+    }
+  }
+  
   GenerateQuery(
       args: GenerateQueryArgs,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
@@ -348,7 +460,7 @@ class BamlStreamClient {
   }
   
   Reflect(
-      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentRound: number,maxRounds: number,
+      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],currentGap?: string | null,currentRound: number,maxRounds: number,
       __baml_options__?: { tb?: TypeBuilder, clientRegistry?: ClientRegistry, collector?: Collector | Collector[], env?: Record<string, string | undefined> }
   ): BamlStream<partial_types.Reflection, Reflection> {
     try {
@@ -358,7 +470,7 @@ class BamlStreamClient {
       const raw = this.runtime.streamFunction(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentRound": currentRound,"maxRounds": maxRounds
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions,"currentGap": currentGap ?? null,"currentRound": currentRound,"maxRounds": maxRounds
         },
         undefined,
         this.ctxManager.cloneContext(),

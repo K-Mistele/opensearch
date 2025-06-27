@@ -8,6 +8,7 @@ type ReflectionStepProps = {
 	searchResultsLength: number;
 	queryPlan?: string[];
 	roundNumber?: number;
+	currentGap?: string | null;
 } & (
 	| {
 			isReflecting: true;
@@ -42,6 +43,12 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 				</Text>
 			</Box>
 
+			{props.currentGap && (
+				<Box marginBottom={1}>
+					<Text color="cyan">Current Focus: {props.currentGap}</Text>
+				</Box>
+			)}
+
 			{totalQuestions > 0 && (
 				<Box marginBottom={1}>
 					<Text color="gray">
@@ -53,16 +60,16 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 
 			<Box marginBottom={1}>
 				<Text color="gray">
-					Analyzing {props.searchResultsLength} search results for
-					completeness...
+					Analyzing {props.searchResultsLength} search results for gap
+					closure...
 				</Text>
 			</Box>
 
 			{props.isReflecting ? (
 				<Box marginBottom={1}>
 					<Text color="magenta">
-						<Spinner type="dots" /> Evaluating information quality and
-						identifying gaps...
+						<Spinner type="dots" /> Evaluating information quality and gap
+						closure...
 					</Text>
 				</Box>
 			) : (
@@ -74,19 +81,42 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 								color={props.reflection.isSufficient ? 'green' : 'yellow'}
 							>
 								{props.reflection.isSufficient
-									? '✓ Analysis Complete - Information Sufficient'
-									: '⚠ Analysis Complete - Knowledge Gaps Found'}
+									? '✓ Analysis Complete - Research Sufficient'
+									: '⚠ Analysis Complete - More Research Needed'}
 							</Text>
 						</Box>
 
-						{/* Knowledge Gap */}
-						{!props.reflection.isSufficient &&
-							props.reflection.knowledgeGap && (
+						{/* Gap Closure Assessment */}
+						{props.currentGap && (
+							<Box marginBottom={1} flexDirection="column">
+								<Text bold color="cyan">
+									Gap Closure Assessment:
+								</Text>
+								<Text
+									color={props.reflection.currentGapClosed ? 'green' : 'yellow'}
+								>
+									{props.reflection.currentGapClosed
+										? '✓ Current knowledge gap successfully closed'
+										: '⚠ Current knowledge gap remains open'}
+								</Text>
+							</Box>
+						)}
+
+						{/* New Gaps Identified */}
+						{props.reflection.newGapsIdentified &&
+							props.reflection.newGapsIdentified.length > 0 && (
 								<Box marginBottom={1} flexDirection="column">
 									<Text bold color="yellow">
-										Knowledge Gap:
+										New Gaps Discovered:
 									</Text>
-									<Text color="white">{props.reflection.knowledgeGap}</Text>
+									{props.reflection.newGapsIdentified.map((gap, index) => (
+										<Text
+											key={`new-gap-${index}-${gap.slice(0, 20)}`}
+											color="white"
+										>
+											• {gap}
+										</Text>
+									))}
 								</Box>
 							)}
 
@@ -135,7 +165,7 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 						) : (
 							<Box flexDirection="column">
 								<Text color="yellow">
-									⚠ Additional research needed - generating follow-up queries
+									⚠ Proceeding to knowledge gap analysis...
 								</Text>
 							</Box>
 						)}
