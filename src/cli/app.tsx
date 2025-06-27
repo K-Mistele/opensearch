@@ -198,15 +198,14 @@ const App: React.FC = () => {
 						</>
 					);
 				}
-				// Follow-up queries are handled in the reflection-complete section below
-				if (
-					step.type === 'reflection-complete' &&
-					step.data.isSufficient &&
-					index === steps.length - 1
-				) {
+				// Handle reflection complete and sufficient
+				if (step.type === 'reflection-complete' && step.data.isSufficient) {
 					const lastSearchResults = steps.findLast(
 						(step) => step.type === 'search-results',
 					);
+					const isLastStep = index === steps.length - 1;
+					const hasAnswerStep = steps.some((s) => s.type === 'answer');
+
 					return (
 						<>
 							<ReflectionStep
@@ -222,32 +221,15 @@ const App: React.FC = () => {
 								roundNumber={roundNumber}
 								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
 							/>
-							<FinalAnswer
-								relevantSummariesCount={step.data.relevantSummariesCount}
-								isGenerating={true}
-								key={`final-answer-generating-${Date.now()}`}
-							/>
+							{/* Only show generating final answer if this is the last step and there's no answer yet */}
+							{isLastStep && !hasAnswerStep && (
+								<FinalAnswer
+									relevantSummariesCount={step.data.relevantSummariesCount}
+									isGenerating={true}
+									key={`final-answer-generating-${Date.now()}`}
+								/>
+							)}
 						</>
-					);
-				}
-				if (step.type === 'reflection-complete' && step.data.isSufficient) {
-					const lastSearchResults = steps.findLast(
-						(step) => step.type === 'search-results',
-					);
-					return (
-						<ReflectionStep
-							researchTopic={researchTopic}
-							isReflecting={false}
-							searchResultsLength={
-								lastSearchResults?.type === 'search-results'
-									? lastSearchResults.data.searchResults.length
-									: 0
-							}
-							reflection={step.data}
-							queryPlan={queryPlan}
-							roundNumber={roundNumber}
-							key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
-						/>
 					);
 				}
 

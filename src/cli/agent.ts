@@ -25,6 +25,9 @@ export async function executeAgent({
 	} satisfies InputStep);
 
 	const rounds = maxRounds ?? 10;
+	const originalMaxRounds = rounds; // Keep track of original max rounds
+	let currentRound = 1; // Track current round number
+
 	const state: AgentState = {
 		researchTopic,
 		searchResults: [],
@@ -130,6 +133,8 @@ export async function executeAgent({
 			initialQueries.queryPlan,
 			answeredQuestions,
 			unansweredQuestions,
+			currentRound,
+			originalMaxRounds,
 		);
 
 		// Update relevant summaries based on reflection
@@ -187,5 +192,8 @@ export async function executeAgent({
 				queryPlan: initialQueries.queryPlan,
 			} satisfies SearchQueryList,
 		} satisfies QueriesGeneratedStep);
+
+		// Increment round counter for next iteration
+		currentRound += 1;
 	}
 }
