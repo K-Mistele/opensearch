@@ -46,6 +46,16 @@ export async function executeAgent({
 		data: initialQueries,
 	} satisfies QueriesGeneratedStep);
 
+	// Track relevant summaries (those that contain unique, non-duplicate information)
+	const relevantSummaries: Array<SearchResult> = [];
+	const relevantSummaryIds: Array<string> = [];
+
+	// Track which questions from the query plan have been answered
+	let answeredQuestions: Array<number> = [];
+	let unansweredQuestions: Array<number> = initialQueries.queryPlan.map(
+		(_, index) => index,
+	);
+
 	let queries: Array<string> = initialQueries.query;
 	while (state.roundsLeft > 0) {
 		const queryStatuses: Record<string, 'pending' | 'completed'> = {};
@@ -63,7 +73,7 @@ export async function executeAgent({
 				.searchAndContents(query, {
 					text: true,
 					highlights: true,
-					numResults: 10,
+					numResults: 4,
 				})
 				.then((result) => {
 					queryStatuses[query] = 'completed';
@@ -100,9 +110,12 @@ export async function executeAgent({
 			const answer = await b.CreateAnswer(
 				new Date().toLocaleDateString(),
 				researchTopic,
-				state.searchResults,
+				relevantSummaries.length > 0 ? relevantSummaries : state.searchResults,
 			);
-			state.answer = processFootnotes(answer, state.searchResults);
+			state.answer = processFootnotes(
+				answer,
+				relevantSummaries.length > 0 ? relevantSummaries : state.searchResults,
+			);
 			eventEmitter.emit('state-update', {
 				type: 'answer',
 				data: state.answer,
@@ -111,23 +124,47 @@ export async function executeAgent({
 		}
 
 		const reflection = await b.Reflect(
-			state.searchResults,
+			searchResults, // Only current batch for analysis
 			researchTopic,
 			new Date().toLocaleDateString(),
+			initialQueries.queryPlan,
+			answeredQuestions,
+			unansweredQuestions,
 		);
+
+		// Update relevant summaries based on reflection
+		const newRelevantSummaries = searchResults.filter((summary) =>
+			reflection.relevantSummaryIds.includes(summary.id),
+		);
+		relevantSummaries.push(...newRelevantSummaries);
+		relevantSummaryIds.push(...reflection.relevantSummaryIds);
+
+		console.log(
+			`Added ${newRelevantSummaries.length} new relevant summaries. Total relevant: ${relevantSummaries.length}`,
+		);
+
+		// Update question tracking based on reflection results
+		answeredQuestions = reflection.answeredQuestions;
+		unansweredQuestions = reflection.unansweredQuestions;
 
 		eventEmitter.emit('state-update', {
 			type: 'reflection-complete',
-			data: reflection,
+			data: {
+				...reflection,
+				relevantSummariesCount: relevantSummaries.length,
+			},
 		} satisfies ReflectionStep);
 
 		if (reflection.isSufficient) {
 			const answer = await b.CreateAnswer(
 				new Date().toLocaleDateString(),
 				researchTopic,
-				state.searchResults,
+				relevantSummaries.length > 0 ? relevantSummaries : state.searchResults,
 			);
-			state.answer = processFootnotes(answer, state.searchResults);
+			state.answer = processFootnotes(
+				answer,
+				relevantSummaries.length > 0 ? relevantSummaries : state.searchResults,
+			);
 			eventEmitter.emit('state-update', {
 				type: 'answer',
 				data: state.answer,
@@ -147,6 +184,7 @@ export async function executeAgent({
 				rationale:
 					reflection.knowledgeGap ||
 					'Additional information needed to complete the research',
+				queryPlan: initialQueries.queryPlan,
 			} satisfies SearchQueryList,
 		} satisfies QueriesGeneratedStep);
 	}

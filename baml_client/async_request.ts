@@ -77,7 +77,7 @@ export class AsyncHttpRequest {
   }
   
   async Reflect(
-      summaries: SearchResult[],research_topic: string,current_date: string,
+      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],
       __baml_options__?: BamlCallOptions
   ): Promise<HTTPRequest> {
     try {
@@ -85,7 +85,7 @@ export class AsyncHttpRequest {
       return await this.runtime.buildRequest(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic,"current_date": current_date
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),
@@ -149,7 +149,7 @@ export class AsyncHttpStreamRequest {
   }
   
   async Reflect(
-      summaries: SearchResult[],research_topic: string,current_date: string,
+      summaries: SearchResult[],research_topic: string,current_date: string,queryPlan: string[],completedQuestions: number[],unansweredQuestions: number[],
       __baml_options__?: BamlCallOptions
   ): Promise<HTTPRequest> {
     try {
@@ -157,7 +157,7 @@ export class AsyncHttpStreamRequest {
       return await this.runtime.buildRequest(
         "Reflect",
         {
-          "summaries": summaries,"research_topic": research_topic,"current_date": current_date
+          "summaries": summaries,"research_topic": research_topic,"current_date": current_date,"queryPlan": queryPlan,"completedQuestions": completedQuestions,"unansweredQuestions": unansweredQuestions
         },
         this.ctxManager.cloneContext(),
         __baml_options__?.tb?.__tb(),

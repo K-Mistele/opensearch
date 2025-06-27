@@ -92,11 +92,22 @@ export const QueryGeneration: React.FC<QueryGenerationProps> = (props) => {
 							))}
 						</Box>
 
-						<Box flexDirection="column">
+						<Box flexDirection="column" marginBottom={1}>
 							<Text bold color="white">
 								Rationale:
 							</Text>
 							<Text color="gray">{props.queries.rationale}</Text>
+						</Box>
+
+						<Box flexDirection="column">
+							<Text bold color="white">
+								Query Plan (Questions to Answer):
+							</Text>
+							{props.queries.queryPlan.map((question: string) => (
+								<Text key={question} color="magenta">
+									• {question}
+								</Text>
+							))}
 						</Box>
 					</Box>
 				)

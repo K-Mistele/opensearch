@@ -72,9 +72,12 @@ export interface QueryGenerationState {
 
 export interface Reflection {
   isSufficient: boolean
+  answeredQuestions: number[]
+  unansweredQuestions: number[]
   knowledgeGap?: string | null
   followUpQueries?: string[] | null
   followupQueriesRationale?: string[] | null
+  relevantSummaryIds: string[]
   
 }
 
@@ -88,6 +91,7 @@ export interface ReflectionState {
 }
 
 export interface SearchQueryList {
+  queryPlan: string[]
   query: string[]
   rationale: string
   

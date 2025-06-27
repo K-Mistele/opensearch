@@ -25,7 +25,9 @@ export type SearchResultsStep = {
 
 export type ReflectionStep = {
 	type: 'reflection-complete';
-	data: Reflection & {};
+	data: Reflection & {
+		relevantSummariesCount: number;
+	};
 };
 
 export type MaxStepsReachedStep = {

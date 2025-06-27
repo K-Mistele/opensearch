@@ -31,7 +31,7 @@ export const executeSearches = inngest.createFunction(
 			'execute-exa-searches',
 			async () => {
 				const result = await exa.searchAndContents(event.data.query, {
-					numResults: event.data.numResults ?? 10,
+					numResults: event.data.numResults ?? 4,
 					text: true,
 					highlights: true,
 				});

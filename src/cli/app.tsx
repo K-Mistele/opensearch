@@ -16,6 +16,7 @@ const App: React.FC = () => {
 	const [steps, setSteps] = useState<Array<Step>>([]);
 	const emitter = useRef<EventEmitter>(eventEmitter);
 	const [researchTopic, setResearchTopic] = useState<string>('');
+	const [queryPlan, setQueryPlan] = useState<string[]>([]);
 
 	useEffect(() => {
 		emitter.current.on('state-update', handleStateUpdate);
@@ -27,6 +28,9 @@ const App: React.FC = () => {
 	}, []);
 
 	const handleStateUpdate = useCallback((step: Step) => {
+		if (step.type === 'queries-generated' && step.data.queryPlan) {
+			setQueryPlan(step.data.queryPlan);
+		}
 		setSteps((prev) => [...prev, step]);
 	}, []);
 
@@ -45,6 +49,7 @@ const App: React.FC = () => {
 
 	const handleResearchTopicSubmit = useCallback((topic: string) => {
 		setResearchTopic(topic);
+		setQueryPlan([]);
 		executeAgent({ researchTopic: topic, maxRounds: 10 });
 	}, []);
 	return (
@@ -136,11 +141,7 @@ const App: React.FC = () => {
 								key={`reflection-sufficient-${step.data.isSufficient ? 'yes' : 'no'}-${Date.now()}`}
 							/>
 							<FinalAnswer
-								searchResultsLength={
-									lastSearchResults?.type === 'search-results'
-										? lastSearchResults.data.allSearchResults.length
-										: 0
-								}
+								relevantSummariesCount={step.data.relevantSummariesCount}
 								isGenerating={true}
 								key={`final-answer-generating-${Date.now()}`}
 							/>

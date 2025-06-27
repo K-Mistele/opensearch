@@ -1,4 +1,4 @@
-import { Newline, Text } from 'ink';
+import { Box, Newline, Text } from 'ink';
 import Link from 'ink-link';
 import Markdown from 'markdown-to-jsx';
 import { Fragment, type ReactNode, memo } from 'react';
@@ -43,7 +43,9 @@ export const MarkdownRenderer = memo(
 			<Markdown
 				options={{
 					forceBlock: true,
-					wrapper: Fragment,
+					wrapper: ({ children }) => (
+						<Box flexDirection="column">{children}</Box>
+					),
 					overrides: {
 						strong: {
 							component: Text,

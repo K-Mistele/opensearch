@@ -60,25 +60,9 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 							</Text>
 						</Box>
 
-						<Box marginBottom={1} flexDirection="column">
-							<Box marginBottom={1}>
-								<Text bold color="white">
-									Information Assessment:
-								</Text>
-							</Box>
-							<Box>
-								<Text>
-									• Sufficient Data:{' '}
-									<Text color={props.reflection.isSufficient ? 'green' : 'red'}>
-										{props.reflection.isSufficient ? 'Yes' : 'No'}
-									</Text>
-								</Text>
-							</Box>
-						</Box>
-
 						{!props.reflection.isSufficient &&
 							props.reflection.knowledgeGap && (
-								<Box marginBottom={1}>
+								<Box marginBottom={1} flexDirection="column">
 									<Text bold color="yellow">
 										Knowledge Gap:
 									</Text>
@@ -86,9 +70,50 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 								</Box>
 							)}
 
+						{props.reflection.answeredQuestions &&
+							props.reflection.answeredQuestions.length > 0 && (
+								<Box marginBottom={1} flexDirection="column">
+									<Text bold color="green">
+										Questions Answered:
+									</Text>
+									{props.reflection.answeredQuestions.map((question) => (
+										<Text key={question} color="green">
+											✓ {question}
+										</Text>
+									))}
+								</Box>
+							)}
+
+						{props.reflection.unansweredQuestions &&
+							props.reflection.unansweredQuestions.length > 0 && (
+								<Box marginBottom={1} flexDirection="column">
+									<Text bold color="yellow">
+										Questions Still Needed:
+									</Text>
+									{props.reflection.unansweredQuestions.map((question) => (
+										<Text key={question} color="yellow">
+											• {question}
+										</Text>
+									))}
+								</Box>
+							)}
+
+						{props.reflection.relevantSummaryIds &&
+							props.reflection.relevantSummaryIds.length > 0 && (
+								<Box marginBottom={1} flexDirection="column">
+									<Text bold color="cyan">
+										Relevant Sources Identified:
+									</Text>
+									<Text color="gray">
+										Found {props.reflection.relevantSummaryIds.length} unique,
+										non-duplicate sources with relevant information
+									</Text>
+								</Box>
+							)}
+
 						{!props.reflection.isSufficient &&
 							props.reflection.followUpQueries && (
-								<Box marginBottom={1}>
+								<Box marginBottom={1} flexDirection="column">
 									<Text bold color="white">
 										Follow-up Queries Needed:
 									</Text>
@@ -101,7 +126,7 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 							)}
 
 						{props.reflection.isSufficient && (
-							<Box>
+							<Box flexDirection="column">
 								<Text color="green">
 									✓ Ready to generate comprehensive answer
 								</Text>

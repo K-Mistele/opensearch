@@ -56,9 +56,12 @@ export namespace partial_types {
     
     export interface Reflection {
         isSufficient?: (boolean | null)
+        answeredQuestions?: (number | null)[]
+        unansweredQuestions?: (number | null)[]
         knowledgeGap: ((string | null) | null)
         followUpQueries: ((string | null)[] | null)
         followupQueriesRationale: ((string | null)[] | null)
+        relevantSummaryIds?: (string | null)[]
     }
     
     export interface ReflectionState {
@@ -70,6 +73,7 @@ export namespace partial_types {
     }
     
     export interface SearchQueryList {
+        queryPlan?: (string | null)[]
         query?: (string | null)[]
         rationale?: (string | null)
     }

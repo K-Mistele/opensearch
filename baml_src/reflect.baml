@@ -2,22 +2,40 @@ function Reflect(
     summaries: SearchResult[],
     research_topic: string,
     current_date: string,
+    queryPlan: string[],
+    completedQuestions: int[],
+    unansweredQuestions: int[],
 ) -> Reflection {
     client "google-ai/gemini-2.5-pro"
     prompt #"
-    You are an expert research assistant analyzing summaries about "{{research_topic}}"..
+    You are an expert research assistant analyzing summaries about "{{research_topic}}".
 
     The current date is {{current_date}}.
 
+    Query Plan:
+    The following questions were previously identified as needing to be answered to fully satisfy the research topic:
+    {% for index in range(queryPlan|length) %}
+    - {{index}} [{% if index in completedQuestions %}Answered{% else %}Unanswered{% endif %}] {{queryPlan[index]}}
+    {% endfor %}
+
     Instructions:
-    - Identify if the information provided in the summaries is sufficient to answer the user's question. 
-    - If the information is sufficient, set isSufficient to true. Do not generate a follow-up query.
+    - Use the query plan to evaluate if the information provided in the summaries below is sufficient to answer the user's question; focusing on the unanswered parts of the query plan
+    - For each unanswered question in the query plan, determine if it has been sufficiently answered by the search results from this round
+    - Identify which questions from the plan have been answered and which still need addressing
+    - If all questions in the query plan have been sufficiently answered, set isSufficient to true
+    - If some questions remain unanswered, set isSufficient to false and generate follow-up queries to address the remaining questions
+
+    CRITICAL - Relevant Summary Selection for This Round:
+    - You are analyzing summaries from THIS ROUND of searches only
+    - Identify which of these summaries contain information that is DIRECTLY relevant to answering the research topic or addressing the query plan
+    - A summary should be marked as relevant if it contains information that helps answer any part of the research question or query plan
+    - Be selective but not overly restrictive - include summaries that provide useful context, facts, or insights related to the research topic
+    - Include the summary IDs (not indexes) in the relevantSummaryIds field for summaries that contribute meaningful information
     
-    If the information in the summaries is insufficient, identify knowlege gaps and write follow-up queries to address them:
-    - Identify knowledge gaps or areas that need deeper exploration and generate a follow-up query. (1 or multiple).
-    - If provided summaries are sufficient to answer the user's question, don't generate a follow-up query.
-    - Generate one or more follow-up queries that would help expand your understanding.
-    - Focus on technical details, implementation specifics, or emerging trends that weren't fully covered.
+    If the information in the summaries is insufficient to answer all questions in the query plan:
+    - Identify knowledge gaps based on the unanswered questions from the query plan
+    - Generate follow-up queries that specifically target the unanswered questions
+    - Ensure follow-up queries are designed to find information that addresses the specific unanswered questions
 
     Requirements:
     - Ensure the follow-up queries are self-contained web search queries
@@ -32,8 +50,7 @@ function Reflect(
     - Queries should be specific and not too broad. Make sure to include important qualifiers and modifiers.
     - We are using Exa's Search API so the queries should not use google-specific search operators
 
-
-    Summaries:
+    Current Round's Search Results:
     <summaries>
     {% for summary in summaries %}
         <summary>
@@ -46,7 +63,7 @@ function Reflect(
     {% endfor %}
     </summaries>
 
-    Reflect carefully on the Summaries to identify knowledge gaps and produce a follow-up query. Then, produce your output following this JSON format:
+    Reflect carefully on these summaries against the query plan, identify which summaries are relevant for answering the research topic, and determine which questions have been answered. Then, produce your output following this JSON format:
     {{ctx.output_format}}
     "#
 }

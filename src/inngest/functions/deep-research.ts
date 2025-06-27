@@ -53,6 +53,15 @@ export const deepResearch = inngest.createFunction(
 
 		const allSearchResults: Array<SearchResult> = [];
 
+		// Track relevant summaries (those that contain unique, non-duplicate information)
+		const relevantSummaries: Array<SearchResult> = [];
+		const relevantSummaryIds: Array<string> = [];
+
+		// Track which questions from the query plan have been answered
+		let answeredQuestions: Array<number> = [];
+		let unansweredQuestions: Array<number> =
+			initialQueryInformation.queryPlan.map((_, index) => index);
+
 		logger.info(`Executing ${initialQueryInformation.query.length} queries`);
 		let queries: Array<string> = initialQueryInformation.query;
 		while (maxRounds > 0) {
@@ -92,10 +101,17 @@ export const deepResearch = inngest.createFunction(
 						const rawAnswer = await b.CreateAnswer(
 							new Date().toLocaleDateString(),
 							args.research_topic,
-							allSearchResults,
+							relevantSummaries.length > 0
+								? relevantSummaries
+								: allSearchResults,
 						);
 						// Process footnotes to convert random IDs to numbered ones
-						return processFootnotes(rawAnswer, allSearchResults);
+						return processFootnotes(
+							rawAnswer,
+							relevantSummaries.length > 0
+								? relevantSummaries
+								: allSearchResults,
+						);
 					},
 				);
 				logger.info('Publishing final answer');
@@ -104,14 +120,17 @@ export const deepResearch = inngest.createFunction(
 			}
 
 			// Otherwise, reflect on the results. force a retry if it's non-sufficient and has no follow-up queries
-			logger.info(`Reflecting on ${allSearchResults.length} search results...`);
+			logger.info(`Reflecting on ${searchResults.length} search results...`);
 			const reflection: Reflection = await step.run(
 				'reflect-on-results',
 				async () => {
 					const reflection = await b.Reflect(
-						allSearchResults,
+						searchResults, // Only current batch for analysis
 						args.research_topic,
 						new Date().toLocaleDateString(),
+						initialQueryInformation.queryPlan,
+						answeredQuestions,
+						unansweredQuestions,
 					);
 					if (!reflection) {
 						throw new NonRetriableError('Reflection is null');
@@ -124,6 +143,22 @@ export const deepResearch = inngest.createFunction(
 					return reflection;
 				},
 			);
+
+			// Update relevant summaries based on reflection
+			const newRelevantSummaries = searchResults.filter((summary) =>
+				reflection.relevantSummaryIds.includes(summary.id),
+			);
+			relevantSummaries.push(...newRelevantSummaries);
+			relevantSummaryIds.push(...reflection.relevantSummaryIds);
+
+			logger.info(
+				`Added ${newRelevantSummaries.length} new relevant summaries. Total relevant: ${relevantSummaries.length}`,
+			);
+
+			// Update question tracking based on reflection results
+			answeredQuestions = reflection.answeredQuestions;
+			unansweredQuestions = reflection.unansweredQuestions;
+
 			logger.info('Reflection Completed; publishing reflection.');
 			await publish(resultsChannel(uuid).reflection(reflection));
 
@@ -138,10 +173,17 @@ export const deepResearch = inngest.createFunction(
 						const rawAnswer = await b.CreateAnswer(
 							new Date().toLocaleDateString(),
 							args.research_topic,
-							allSearchResults,
+							relevantSummaries.length > 0
+								? relevantSummaries
+								: allSearchResults,
 						);
 						// Process footnotes to convert random IDs to numbered ones
-						return processFootnotes(rawAnswer, allSearchResults);
+						return processFootnotes(
+							rawAnswer,
+							relevantSummaries.length > 0
+								? relevantSummaries
+								: allSearchResults,
+						);
 					},
 				);
 				logger.info('Publishing final answer');

@@ -6,12 +6,12 @@ import { MarkdownRenderer } from './markdown-renderer';
 type FinalAnswerProps =
 	| {
 			isGenerating: true;
-			searchResultsLength: number;
+			relevantSummariesCount: number;
 	  }
 	| {
 			isGenerating: false;
 			answer: string;
-			searchResultsLength: number;
+			relevantSummariesCount: number;
 	  };
 
 export const FinalAnswer: React.FC<FinalAnswerProps> = (props) => {
@@ -33,7 +33,7 @@ export const FinalAnswer: React.FC<FinalAnswerProps> = (props) => {
 
 			<Box marginBottom={1}>
 				<Text color="gray">
-					Synthesizing insights from {props.searchResultsLength} sources...
+					Synthesizing insights from {props.relevantSummariesCount} sources...
 				</Text>
 			</Box>
 
@@ -51,7 +51,7 @@ export const FinalAnswer: React.FC<FinalAnswerProps> = (props) => {
 						</Text>
 					</Box>
 
-					<Box>
+					<Box flexDirection="column">
 						<MarkdownRenderer content={props.answer} />
 					</Box>
 				</Box>

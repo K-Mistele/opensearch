@@ -30,11 +30,11 @@ export default class TypeBuilder {
     
     QueryGenerationState: ClassViewer<'QueryGenerationState', "search_query">;
     
-    Reflection: ClassViewer<'Reflection', "isSufficient" | "knowledgeGap" | "followUpQueries" | "followupQueriesRationale">;
+    Reflection: ClassViewer<'Reflection', "isSufficient" | "answeredQuestions" | "unansweredQuestions" | "knowledgeGap" | "followUpQueries" | "followupQueriesRationale" | "relevantSummaryIds">;
     
     ReflectionState: ClassViewer<'ReflectionState', "is_sufficient" | "knowledge_gap" | "follow_up_queries" | "research_loop_count" | "number_of_ran_queries">;
     
-    SearchQueryList: ClassViewer<'SearchQueryList', "query" | "rationale">;
+    SearchQueryList: ClassViewer<'SearchQueryList', "queryPlan" | "query" | "rationale">;
     
     SearchResult: ClassViewer<'SearchResult', "url" | "id" | "title" | "highlights" | "highlightScores" | "text">;
     
@@ -72,7 +72,7 @@ export default class TypeBuilder {
         ]);
         
         this.Reflection = this.tb.classViewer("Reflection", [
-          "isSufficient","knowledgeGap","followUpQueries","followupQueriesRationale",
+          "isSufficient","answeredQuestions","unansweredQuestions","knowledgeGap","followUpQueries","followupQueriesRationale","relevantSummaryIds",
         ]);
         
         this.ReflectionState = this.tb.classViewer("ReflectionState", [
@@ -80,7 +80,7 @@ export default class TypeBuilder {
         ]);
         
         this.SearchQueryList = this.tb.classViewer("SearchQueryList", [
-          "query","rationale",
+          "queryPlan","query","rationale",
         ]);
         
         this.SearchResult = this.tb.classViewer("SearchResult", [
