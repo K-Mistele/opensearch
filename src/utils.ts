@@ -218,7 +218,7 @@ export function nanoid(len = 10): string {
  * Processes markdown text to convert random ID footnotes to numbered footnotes
  * and adds proper MDX footnote definitions at the bottom.
  *
- * @param text - The markdown text containing footnotes like [^randomId]
+ * @param text - The markdown text containing footnotes like [^randomId] or [^id1,id2]
  * @param searchResults - Array of search results to map footnote IDs to
  * @returns The processed text with numbered footnotes and definitions
  */
@@ -230,10 +230,11 @@ export function processFootnotes(
 		url?: string | null;
 	}>,
 ): string {
-	// Find all footnote references in the format [^ID]
+	// Find all footnote references in the format [^ID] or [^ID1,ID2,...]
 	const footnoteRegex = /\[\^([^\]]+)\]/g;
 	const foundFootnotes = new Map<string, number>();
 	const footnoteDefinitions: string[] = [];
+	const footnoteReplacements = new Map<string, string>();
 	let footnoteCounter = 1;
 
 	// First pass: collect all unique footnote IDs and assign numbers
@@ -242,39 +243,63 @@ export function processFootnotes(
 
 	match = footnoteRegex.exec(text);
 	while (match !== null) {
-		const footnoteId = match[1];
-		if (footnoteId && !foundFootnotes.has(footnoteId)) {
-			foundFootnotes.set(footnoteId, footnoteCounter);
+		const footnoteIds = match[1];
+		const fullMatch = match[0]; // The complete match like [^abc,def]
 
-			// Find the corresponding search result
-			const searchResult = searchResults.find(
-				(result) => result.id === footnoteId,
-			);
-			if (searchResult) {
-				// Create footnote definition
-				const title = searchResult.title ?? 'Untitled';
-				const url = searchResult.url ?? '#';
-				footnoteDefinitions.push(`[^${footnoteCounter}]: [${title}](${url})`);
-			} else {
-				// Fallback if search result not found
-				footnoteDefinitions.push(`[^${footnoteCounter}]: Reference not found`);
+		if (footnoteIds) {
+			// Split by comma to handle multiple IDs in one reference
+			const individualIds = footnoteIds.split(',').map((id) => id.trim());
+			const numberedRefs: string[] = [];
+
+			for (const footnoteId of individualIds) {
+				if (footnoteId && !foundFootnotes.has(footnoteId)) {
+					foundFootnotes.set(footnoteId, footnoteCounter);
+
+					// Find the corresponding search result
+					const searchResult = searchResults.find(
+						(result) => result.id === footnoteId,
+					);
+					if (searchResult) {
+						// Create footnote definition
+						const title = searchResult.title ?? 'Untitled';
+						const url = searchResult.url ?? '#';
+						footnoteDefinitions.push(
+							`[^${footnoteCounter}]: [${title}](${url})`,
+						);
+					} else {
+						// Fallback if search result not found
+						footnoteDefinitions.push(
+							`[^${footnoteCounter}]: Reference not found`,
+						);
+					}
+
+					footnoteCounter++;
+				}
+
+				// Add the numbered reference for this ID
+				const number = foundFootnotes.get(footnoteId);
+				if (number) {
+					numberedRefs.push(`${number}`);
+				}
 			}
 
-			footnoteCounter++;
+			// Store the replacement for this full match
+			// If multiple IDs, join with comma: [^1,2,3]
+			// If single ID, just: [^1]
+			const replacement = `[^${numberedRefs.join(',')}]`;
+			footnoteReplacements.set(fullMatch, replacement);
 		}
 		match = footnoteRegex.exec(text);
 	}
 
 	// Second pass: replace all footnote references with numbered ones
 	let processedText = text;
-	for (const [originalId, number] of foundFootnotes) {
-		const numberedFootnote = `[^${number}]`;
+	for (const [originalMatch, replacement] of footnoteReplacements) {
+		// Escape special regex characters in the original match
+		const escapedMatch = originalMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 		processedText = processedText.replace(
-			new RegExp(
-				`\\[\\^${originalId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`,
-				'g',
-			),
-			numberedFootnote,
+			new RegExp(escapedMatch, 'g'),
+			replacement,
 		);
 	}
 

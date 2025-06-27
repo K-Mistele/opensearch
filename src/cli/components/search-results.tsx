@@ -22,35 +22,40 @@ export const SearchResults: React.FC<SearchResultsProps> = (props) => {
 			flexDirection="column"
 			paddingX={2}
 			paddingY={1}
-			borderStyle="double"
+			borderStyle="round"
 			borderColor="cyan"
+			marginBottom={1}
 		>
 			<Box marginBottom={1}>
-				<Text bold color="blue">
-					🔍 Executing Web Searches
+				<Text bold color="cyan">
+					🔍 Web Search Execution
 				</Text>
 			</Box>
 
-			<Box flexDirection="column">
+			<Box marginBottom={1}>
+				<Text color="gray">
+					Executing {Object.keys(queries).length} search queries...
+				</Text>
+			</Box>
+
+			<Box flexDirection="column" marginBottom={1}>
 				{Object.entries(queries).map(([query, status], index) => (
-					<Text key={`query-${query}`}>
-						{status === 'pending' && <Spinner type="dots" />}
-						{status === 'completed' && <Text color="green">✅</Text>}
-						<Text color={status === 'pending' ? 'gray' : 'white'}>
-							{' '}
-							{query}
-						</Text>
-					</Text>
+					<Box key={`query-${query}`}>
+						{status === 'pending' ? (
+							<Text color="cyan">
+								<Spinner type="dots" /> {query}
+							</Text>
+						) : (
+							<Text color="green">✓ {query}</Text>
+						)}
+					</Box>
 				))}
-				{!props.isSearching && (
-					<Text color="cyan">({searchResults.length} results)</Text>
-				)}
 			</Box>
 
 			{!isSearching && (
-				<Box marginTop={1}>
+				<Box>
 					<Text bold color="green">
-						✅ All searches complete! Found {searchResults.length} total results
+						✓ Search Complete - Found {searchResults.length} results
 					</Text>
 				</Box>
 			)}

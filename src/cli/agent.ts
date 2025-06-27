@@ -80,7 +80,7 @@ export async function executeAgent({
 			await Promise.all(searchSteps)
 		).flat();
 		for (const searchResult of searchResults) {
-			searchResult.id = nanoid();
+			searchResult.id = nanoid(4);
 			state.searchResults.push(searchResult);
 		}
 		eventEmitter.emit('state-update', {

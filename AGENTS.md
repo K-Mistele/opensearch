@@ -1,0 +1,30 @@
+# Agent Guidelines for OpenSearch Project
+
+## Build/Test Commands
+- **Run dev**: `bun run dev` (watches src/index.ts)
+- **Run CLI**: `bun run cli` (starts interactive CLI)
+- **Run tests**: `bun test` (runs all tests)
+- **Run single test**: `bun test <test-file>` (e.g., `bun test test/generate-query.test.ts`)
+- **Format/Lint**: Use Biome via `bunx biome format .` and `bunx biome lint .`
+
+## Code Style & Conventions
+- **Runtime**: Use Bun instead of Node.js/npm/pnpm (see .cursor/rules)
+- **Formatting**: Tabs for indentation, single quotes for strings (biome.json)
+- **Imports**: Organize imports enabled, use path aliases `@/*` for src, `@baml-client` for BAML
+- **Types**: Strict TypeScript, interfaces for data structures, explicit return types
+- **Naming**: PascalCase for React components/BAML functions, camelCase for variables/functions
+- **Files**: .tsx for React components, .ts for utilities, .baml for BAML functions
+
+## BAML Integration
+- **Source files**: Only edit files in `baml_src/` directory (*.baml files)
+- **Generated code**: `baml_client/` is auto-generated from `baml_src/` - never edit directly
+- **Functions**: Import and call via `import { b } from '@baml-client'; await b.SomeFunction(...)`
+- **Types**: All classes/enums exported from `@baml-client` (e.g., `import { SearchResult } from '@baml-client'`)
+- **Naming**: BAML functions use PascalCase (e.g., `GenerateQuery`, `Reflect`)
+- **Prompts**: Include `{{ ctx.output_format }}` and `{{ _.role("user") }}` for user inputs
+- **Schema**: Prefer enums over confidence numbers, use classes for structured outputs
+
+## Error Handling & Testing
+- Use Bun's built-in test framework with `import { test, expect } from "bun:test"`
+- Async/await for BAML function calls and API interactions
+- Type-safe error handling with proper TypeScript types

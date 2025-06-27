@@ -18,57 +18,69 @@ type ReflectionStepProps = {
 
 export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 	return (
-		<Box flexDirection="column">
+		<Box
+			flexDirection="column"
+			paddingX={2}
+			paddingY={1}
+			borderStyle="round"
+			borderColor="magenta"
+			marginBottom={1}
+		>
 			<Box marginBottom={1}>
-				<Text bold color="purple">
-					🤔 Analyzing Search Results
+				<Text bold color="magenta">
+					🤔 Research Analysis
 				</Text>
 			</Box>
 
 			<Box marginBottom={1}>
 				<Text color="gray">
-					Found {props.searchResultsLength} search results - analyzing for
+					Analyzing {props.searchResultsLength} search results for
 					completeness...
 				</Text>
 			</Box>
 
 			{props.isReflecting ? (
-				<Box>
-					<Spinner type="dots" />
-					<Text>
-						{' '}
-						Evaluating information quality and identifying knowledge gaps...
+				<Box marginBottom={1}>
+					<Text color="magenta">
+						<Spinner type="dots" /> Evaluating information quality and
+						identifying gaps...
 					</Text>
 				</Box>
 			) : (
 				props.reflection && (
-					<Box flexDirection="column" marginTop={1}>
+					<Box flexDirection="column">
 						<Box marginBottom={1}>
 							<Text
 								bold
 								color={props.reflection.isSufficient ? 'green' : 'yellow'}
 							>
 								{props.reflection.isSufficient
-									? '✅ Analysis Complete - Sufficient'
-									: '⚠️ Analysis Complete - Gaps Found'}
+									? '✓ Analysis Complete - Information Sufficient'
+									: '⚠ Analysis Complete - Knowledge Gaps Found'}
 							</Text>
 						</Box>
 
-						<Box marginBottom={1}>
-							<Text bold>Analysis Results:</Text>
-							<Text>
-								• Information Sufficient:{' '}
-								<Text color={props.reflection.isSufficient ? 'green' : 'red'}>
-									{props.reflection.isSufficient ? 'Yes' : 'No'}
+						<Box marginBottom={1} flexDirection="column">
+							<Box marginBottom={1}>
+								<Text bold color="white">
+									Information Assessment:
 								</Text>
-							</Text>
+							</Box>
+							<Box>
+								<Text>
+									• Sufficient Data:{' '}
+									<Text color={props.reflection.isSufficient ? 'green' : 'red'}>
+										{props.reflection.isSufficient ? 'Yes' : 'No'}
+									</Text>
+								</Text>
+							</Box>
 						</Box>
 
 						{!props.reflection.isSufficient &&
 							props.reflection.knowledgeGap && (
 								<Box marginBottom={1}>
 									<Text bold color="yellow">
-										Knowledge Gap Identified:
+										Knowledge Gap:
 									</Text>
 									<Text color="yellow">{props.reflection.knowledgeGap}</Text>
 								</Box>
@@ -76,8 +88,10 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 
 						{!props.reflection.isSufficient &&
 							props.reflection.followUpQueries && (
-								<Box>
-									<Text bold>Follow-up Queries to Generate:</Text>
+								<Box marginBottom={1}>
+									<Text bold color="white">
+										Follow-up Queries Needed:
+									</Text>
 									{props.reflection.followUpQueries.map((query, index) => (
 										<Text key={query} color="cyan">
 											• {query}
@@ -89,8 +103,7 @@ export const ReflectionStep: React.FC<ReflectionStepProps> = (props) => {
 						{props.reflection.isSufficient && (
 							<Box>
 								<Text color="green">
-									Ready to generate comprehensive answer based on gathered
-									information.
+									✓ Ready to generate comprehensive answer
 								</Text>
 							</Box>
 						)}

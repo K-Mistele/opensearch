@@ -5,7 +5,7 @@ function CreateAnswer(
 ) -> string {
     client "google-ai/gemini-2.5-pro"
     prompt #"
-        Generate a high-quality answer to the user's question based on the provided summaries.
+        Generate a high-quality answer formatted in markdown to the user's question based on the provided summaries.
 
         Instructions:
         - The current date is {{current_date}}.
@@ -15,6 +15,7 @@ function CreateAnswer(
         - Generate a high-quality answer to the user's question based on the provided summaries and the user's question.
         - To include the sources you used from the Summaries in the answer correctly, use markdown footnotes. This creates a superscript number with a link to jump to the footnote. You can put footnotes anywhere in the document except inside other markdown elements like blocks, lists, and tables. 
         - When you use a footnote, you should use the id of the summary as the footnote id - the links at the bottom of the document will be added _for you_ - there is no need to add them yourself.
+        - If you use a footnote, you need to make sure that the ID of the footnote EXACTLY matches the ID of the summary.
 
         <markdown_footnotes_example>
             Here's a simple footnote,[^abc789a] and here's a longer one.[^90fdaha]
@@ -23,6 +24,8 @@ function CreateAnswer(
             [^abc789a]: This is the first footnote.
 
             [^90fdaha]: Here's another footnote.
+
+            Here are two footnotes in a row: [^abcdefg,hijklmn]
         </markdown_footnotes_example>
 
         Very important instructions:

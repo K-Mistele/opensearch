@@ -1,4 +1,6 @@
-import { Text } from 'ink';
+import { Box, Text } from 'ink';
+import BigText from 'ink-big-text';
+import Gradient from 'ink-gradient';
 import type { EventEmitter } from 'node:events';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -46,7 +48,11 @@ const App: React.FC = () => {
 		executeAgent({ researchTopic: topic, maxRounds: 10 });
 	}, []);
 	return (
-		<>
+		<Box flexDirection="column" overflow="visible">
+			<Gradient name="atlas">
+				<BigText text="Open" />
+				<BigText text="Search" />
+			</Gradient>
 			<ResearchInput onSubmit={handleResearchTopicSubmit} />
 			{steps.map((step, index) => {
 				if (step.type === 'input' && index === steps.length - 1) {
@@ -83,6 +89,11 @@ const App: React.FC = () => {
 				}
 				if (step.type === 'search-results') {
 					const prevStep = steps[index - 1];
+					const hasReflectionComplete = steps
+						.slice(index + 1)
+						.some((s) => s.type === 'reflection-complete');
+					const isLastStep = index === steps.length - 1;
+
 					return (
 						<>
 							<SearchResults
@@ -91,12 +102,14 @@ const App: React.FC = () => {
 								searchResults={step.data.searchResults}
 								key={`search-results-${step.data.searchResults.length}`}
 							/>
-							<ReflectionStep
-								researchTopic={researchTopic}
-								searchResultsLength={step.data.allSearchResults.length}
-								isReflecting={true}
-								key={`reflection-generating-${step.data.allSearchResults.length}`}
-							/>
+							{!hasReflectionComplete && isLastStep && (
+								<ReflectionStep
+									researchTopic={researchTopic}
+									searchResultsLength={step.data.allSearchResults.length}
+									isReflecting={true}
+									key={`reflection-generating-${step.data.allSearchResults.length}`}
+								/>
+							)}
 						</>
 					);
 				}
@@ -129,7 +142,7 @@ const App: React.FC = () => {
 										: 0
 								}
 								isGenerating={true}
-								key={`final-answer-generating-${index}`}
+								key={`final-answer-generating-${Date.now()}`}
 							/>
 						</>
 					);
@@ -224,11 +237,7 @@ const App: React.FC = () => {
 					);
 				}
 			})}
-			<Text>{steps.length}</Text>
-			{steps.map((step, index) => (
-				<Text key={`${step.type}-${index}`}>{step.type}</Text>
-			))}
-		</>
+		</Box>
 	);
 };
 

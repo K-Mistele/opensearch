@@ -8,7 +8,8 @@
 		"cli": "BAML_LOG=OFF bun --bun run  src/cli/index.tsx"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"@types/marked-terminal": "^6.1.1"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
@@ -16,15 +17,25 @@
 	"dependencies": {
 		"@boundaryml/baml": "^0.90.2",
 		"@inngest/realtime": "^0.3.1",
+		"@mdx-js/react": "^3.1.0",
+		"@mdx-js/runtime": "^2.0.0",
 		"@types/react": "^19.1.8",
 		"exa-js": "^1.8.17",
 		"ink": "^6.0.0",
+		"ink-big-text": "^2.0.0",
+		"ink-gradient": "^3.0.0",
+		"ink-link": "^4.1.0",
+		"ink-markdown": "^1.0.4",
 		"ink-select-input": "^6.2.0",
 		"ink-spinner": "^5.0.0",
 		"ink-text-input": "^6.0.0",
 		"inngest": "^3.39.2",
 		"lucide-react": "^0.523.0",
+		"markdown-to-jsx": "^7.7.8",
+		"marked": "^15.0.12",
+		"marked-terminal": "^7.3.0",
 		"react": "^19.1.0",
+		"remark-gfm": "^4.0.1",
 		"xstate": "^5.20.0"
 	}
 }

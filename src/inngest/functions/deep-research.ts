@@ -74,7 +74,7 @@ export const deepResearch = inngest.createFunction(
 			// Save for later with IDs
 			for (const result of searchResults) {
 				console.log('result', result);
-				result.id = nanoid();
+				result.id = nanoid(4);
 				console.log(`Adding search result with ID: ${result.id}`);
 				allSearchResults.push(result);
 			}

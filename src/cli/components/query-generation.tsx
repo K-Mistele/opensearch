@@ -37,52 +37,54 @@ export const QueryGeneration: React.FC<QueryGenerationProps> = (props) => {
 		<Box
 			flexDirection="column"
 			borderColor="blue"
-			borderStyle="double"
+			borderStyle="round"
 			paddingX={2}
 			paddingY={1}
+			marginBottom={1}
 		>
 			<Box marginBottom={1}>
-				<Text bold color="yellow">
+				<Text bold color="blue">
 					{isFollowUp
-						? `🔄 ${genWord} Follow-Up Queries`
-						: `🤖 ${genWord} Search Queries`}
+						? '🔄 Follow-Up Query Generation'
+						: '🤖 Search Query Generation'}
 				</Text>
+			</Box>
+
+			<Box marginBottom={1}>
+				<Text color="gray">Topic: {researchTopic}</Text>
 			</Box>
 
 			{isFollowUp &&
 				'previousReflection' in props &&
 				props.previousReflection?.knowledgeGap && (
 					<Box marginBottom={1}>
-						<Text color="gray">
-							Knowledge Gap: {props.previousReflection.knowledgeGap}
+						<Text color="yellow">
+							Gap: {props.previousReflection.knowledgeGap}
 						</Text>
 					</Box>
 				)}
 
-			<Box marginBottom={1}>
-				<Text color="gray">Research Topic: {researchTopic}</Text>
-			</Box>
-
 			{isGenerating ? (
-				<Box>
-					<Spinner type="dots" />
-					<Text>
-						{' '}
-						Analyzing topic and generating optimized search queries...
+				<Box marginBottom={1}>
+					<Text color="blue">
+						<Spinner type="dots" /> Analyzing topic and crafting optimal search
+						queries...
 					</Text>
 				</Box>
 			) : (
 				'queries' in props &&
 				props.queries && (
-					<Box flexDirection="column" marginTop={1}>
+					<Box flexDirection="column">
 						<Box marginBottom={1}>
 							<Text bold color="green">
-								✅ Queries Ready
+								✓ Queries Ready
 							</Text>
 						</Box>
 
 						<Box marginBottom={1} flexDirection="column">
-							<Text bold>Search Queries:</Text>
+							<Text bold color="white">
+								Search Queries:
+							</Text>
 							{props.queries.query.map((query: string) => (
 								<Text key={query} color="cyan">
 									• {query}

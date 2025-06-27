@@ -21,27 +21,33 @@ export const ResearchInput: React.FC<ResearchInputProps> = ({ onSubmit }) => {
 	return (
 		<Box
 			flexDirection="column"
-			borderColor="magenta"
-			borderStyle="double"
+			borderColor="yellow"
+			borderStyle="round"
 			paddingY={1}
 			paddingX={2}
+			marginBottom={1}
 		>
 			<Box marginBottom={1}>
-				<Text bold>🔎 What would you like to research?</Text>
+				<Text bold color="yellow">
+					🔎 Research Topic
+				</Text>
+			</Box>
+			<Box marginBottom={1}>
+				<Text color="gray">Enter what you'd like to research:</Text>
 			</Box>
 			<Box>
-				<Text color="gray">Topic: </Text>
+				<Text color="yellow">❯ </Text>
 				<TextInput
 					value={query}
 					onChange={setQuery}
 					onSubmit={handleSubmit}
-					placeholder="Enter your research topic..."
+					placeholder="Your research topic..."
 				/>
 			</Box>
 
 			<Box marginTop={1}>
 				<Text color="gray" dimColor>
-					{submitted ? 'Research started.' : 'Press Enter to submit'}
+					{submitted ? '✓ Research started' : 'Press Enter to begin research'}
 				</Text>
 			</Box>
 		</Box>
