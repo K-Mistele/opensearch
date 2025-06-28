@@ -241,6 +241,50 @@ type Step =
 - **FinalAnswer**: Answer synthesis with extracted facts or search results
 - **MarkdownRenderer**: Citation rendering with link handling
 
+### Event Emission Patterns (`src/cli/agent.ts` → `app.tsx`)
+
+**CRITICAL**: The CLI uses two different event emission patterns that must be used correctly to avoid duplicate UI components:
+
+#### `state-update` (Append Pattern)
+- **Purpose**: Adds new steps to the workflow
+- **Usage**: For genuinely new workflow steps or initial emissions
+- **Example**: `eventEmitter.emit('state-update', { type: 'input', data: topic })`
+
+#### `state-replace` (Replace Pattern)  
+- **Purpose**: Updates existing steps of the same type (replaces the last occurrence)
+- **Usage**: For progress updates or when transitioning from "generating" to "complete" states
+- **Example**: `eventEmitter.emit('state-replace', { type: 'searching', data: updatedStatus })`
+
+#### Common Anti-Patterns to Avoid
+
+1. **Duplicate UI Components**: 
+   - ❌ **Wrong**: Emitting both `followup-query-generation` AND `queries-generated` with same data
+   - ✅ **Correct**: Only emit `followup-query-generation` for follow-up queries
+
+2. **Progress Updates**:
+   - ❌ **Wrong**: Using `state-update` for search query status changes (creates multiple search components)
+   - ✅ **Correct**: Use `state-replace` to update search progress in-place
+
+3. **Generating → Complete Transitions**:
+   - ❌ **Wrong**: `state-update` for fact extraction completion (shows both generating + complete)
+   - ✅ **Correct**: `state-replace` to transition from generating to complete state
+
+#### UI Rendering Logic (`app.tsx`)
+
+The UI handles "generating" states by checking if steps exist in future indices:
+```typescript
+const hasFollowUpStep = steps
+  .slice(index + 1)
+  .some((s) => s.type === 'followup-query-generation');
+
+// Show generating state only if no complete step exists yet
+{!hasFollowUpStep && isLastStep && shouldContinue && (
+  <Component isGenerating={true} />
+)}
+```
+
+**Key Rule**: If a UI component shows a "generating" state that will be replaced by a "complete" state, the complete state MUST use `state-replace`, not `state-update`.
+
 ## Inngest Workflow Architecture
 
 ### Function Structure (`src/inngest/functions/deep-research.ts`)
