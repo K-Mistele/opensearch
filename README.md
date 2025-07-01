@@ -6,7 +6,7 @@
 An AI-powered research agent that conducts sophisticated multi-round web research with knowledge gap tracking, strategic query generation, and comprehensive answer synthesis.
 
 **Created by [Kyle Mistele](https://blacklight.sh) ([@0xblacklight](https://x.com/0xblacklight))**
-<video src='https://screen.studio/share/pr1Nuxqj'></video>
+<video><source type="video/mp4" src="https://cdn.blacklight.sh/OpenSearch.mp4"/></video>
 
 
 ## 🚀 Overview
